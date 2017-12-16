@@ -14,6 +14,8 @@
  *    nginx development guide
  *    https://nginx.org/en/docs/dev/development_guide.html.
  *
+ * Directives:
+ *
  * jpeg_filter on|off
  * Default: off
  * Context: location
@@ -52,7 +54,7 @@
  * Default: center center
  * Context: location
  *
- * jpeg_filter_dropon_offset x|y
+ * jpeg_filter_dropon_offset vertical horizontal
  * Default: 0 0
  * Context: location
  *
@@ -352,7 +354,7 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 
 	/*
 	 * Do not call the next header filter because we don't know yet
-	 * the length of the modified body.
+	 * the length of the modified body or if we like the original body.
 	 */
 	return NGX_OK;
 }
@@ -825,6 +827,8 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	ngx_str_t                         *value;
 	ngx_http_compile_complex_value_t   ccv;
 	ngx_http_jpeg_filter_element_t    *fe;
+
+	ngx_log_debug0(NGX_LOG_DEBUG_CORE, cf->log, 0, "jpeg_filter: ngx_conf_jpeg_filter_effect");
 
 	value = cf->args->elts;
 
