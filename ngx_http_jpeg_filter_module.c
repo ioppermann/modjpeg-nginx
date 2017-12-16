@@ -20,11 +20,11 @@
  *
  * jpeg_filter_max_width width
  * Default: 0 (not limited)
- * Context: location
+ * Context: http, server, location
  *
  * jpeg_filter_max_height height
  * Default: 0 (not limited)
- * Context: location
+ * Context: http, server, location
  *
  * jpeg_filter_optimize on|off
  * Default: off
@@ -75,21 +75,23 @@
 #define NGX_HTTP_IMAGE_BUFFERED  0x08
 
 /* Phases of the body filter */
-#define NGX_HTTP_JPEG_FILTER_PHASE_START     0
-#define NGX_HTTP_JPEG_FILTER_PHASE_READ      1
-#define NGX_HTTP_JPEG_FILTER_PHASE_PROCESS   2
-#define NGX_HTTP_JPEG_FILTER_PHASE_PASS      3
-#define NGX_HTTP_JPEG_FILTER_PHASE_DONE      4
+#define NGX_HTTP_JPEG_FILTER_PHASE_START          0
+#define NGX_HTTP_JPEG_FILTER_PHASE_READ           1
+#define NGX_HTTP_JPEG_FILTER_PHASE_PROCESS        2
+#define NGX_HTTP_JPEG_FILTER_PHASE_PASS           3
+#define NGX_HTTP_JPEG_FILTER_PHASE_DONE           4
 
-#define NGX_HTTP_JPEG_FILTER_UNMODIFIED   0
-#define NGX_HTTP_JPEG_FILTER_MODIFIED     1
+#define NGX_HTTP_JPEG_FILTER_UNMODIFIED           0
+#define NGX_HTTP_JPEG_FILTER_MODIFIED             1
 
 /* Types for the filter elements */
-#define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1            1
-#define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2            2
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN       3
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET      4
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON             5
+#define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1         1
+#define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2         2
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN    3
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET   4
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON          5
+
+#define NGX_HTTP_JPEG_FILTER_BUFFER_SIZE          2 * 1024 * 1024
 
 /* Configuration of the elements in the processing chain */
 typedef struct {
@@ -163,14 +165,14 @@ static ngx_command_t ngx_http_jpeg_filter_commands[] = {
 	  NULL },
 
 	{ ngx_string("jpeg_filter_max_width"),
-	  NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+	  NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
 	  ngx_conf_set_num_slot,
 	  NGX_HTTP_LOC_CONF_OFFSET,
 	  offsetof(ngx_http_jpeg_filter_conf_t, max_width),
 	  NULL },
 
 	{ ngx_string("jpeg_filter_max_height"),
-	  NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+	  NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
 	  ngx_conf_set_num_slot,
 	  NGX_HTTP_LOC_CONF_OFFSET,
 	  offsetof(ngx_http_jpeg_filter_conf_t, max_height),
@@ -639,6 +641,14 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 		return NGX_ERROR;
 	}
 
+	if(
+		(conf->max_width != 0 && (ngx_uint_t)m->width > conf->max_width) ||
+		(conf->max_height != 0 && (ngx_uint_t)m->height > conf->max_height)
+	) {
+		mj_destroy_jpeg(m);
+		return NGX_ERROR;
+	}
+
 	ngx_http_jpeg_filter_element_t *felts = conf->filter_elements->elts;
 	ngx_uint_t i;
 	ngx_int_t n, align = 0, offset_x = 0, offset_y = 0;
@@ -1048,7 +1058,7 @@ static char *ngx_http_jpeg_filter_merge_conf(ngx_conf_t *cf, void *parent, void 
 	ngx_conf_merge_uint_value(conf->max_width, prev->max_width, 0);
 	ngx_conf_merge_uint_value(conf->max_height, prev->max_height, 0);
 
-	ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, 2 * 1024 * 1024);
+	ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, NGX_HTTP_JPEG_FILTER_BUFFER_SIZE);
 
 	return NGX_CONF_OK;
 }
