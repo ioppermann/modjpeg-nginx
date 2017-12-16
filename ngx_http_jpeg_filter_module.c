@@ -1,3 +1,68 @@
+/*
+ * Copyright (c) Ingo Oppermann
+ *
+ * JPEG filter module using libmodjpeg (github.com/ioppermann/libmodjpeg)
+ *
+ * This module is heavily inspired by the image filter module with
+ * insights from
+ *
+ *    "Emiller’s Guide To Nginx Module Development"
+ *    https://www.evanmiller.org/nginx-modules-guide.html
+ *
+ * and the
+ *
+ *    nginx development guide
+ *    https://nginx.org/en/docs/dev/development_guide.html.
+ *
+ * jpeg_filter on|off
+ * Default: off
+ * Context: location
+ *
+ * jpeg_filter_max_width width
+ * Default: 0 (not limited)
+ * Context: location
+ *
+ * jpeg_filter_max_height height
+ * Default: 0 (not limited)
+ * Context: location
+ *
+ * jpeg_filter_optimize on|off
+ * Default: off
+ * Context: http, server, location
+ *
+ * jpeg_filter_progressive on|off
+ * Default: off
+ * Context: http, server, location
+ *
+ * jpeg_filter_graceful on|off
+ * Default: off
+ * Context: http, server, location
+ *
+ * jpeg_filter_buffer size
+ * Default: 2M
+ * Context: http, server, location
+ *
+ * jpeg_filter_effect grayscale|pixelate
+ * jpeg_filter_effect darken|brighten value
+ * jpeg_filter_effect tintblue|tintyellow|tintred|tintgreen value
+ * Default: -
+ * Context: location
+ *
+ * jpeg_filter_dropon_align top|center|bottom left|center|right
+ * Default: center center
+ * Context: location
+ *
+ * jpeg_filter_dropon_offset x|y
+ * Default: 0 0
+ * Context: location
+ *
+ * jpeg_filter_dropon image
+ * jpeg_filter_dropon image mask
+ * Default: -
+ * Context: location
+ *
+ */
+
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -7,6 +72,9 @@
 #define NGX_HTTP_IMAGE_NONE      0
 #define NGX_HTTP_IMAGE_JPEG      1
 
+#define NGX_HTTP_IMAGE_BUFFERED  0x08
+
+/* Phases of the body filter */
 #define NGX_HTTP_JPEG_FILTER_PHASE_START     0
 #define NGX_HTTP_JPEG_FILTER_PHASE_READ      1
 #define NGX_HTTP_JPEG_FILTER_PHASE_PROCESS   2
@@ -16,70 +84,76 @@
 #define NGX_HTTP_JPEG_FILTER_UNMODIFIED   0
 #define NGX_HTTP_JPEG_FILTER_MODIFIED     1
 
-#define NGX_HTTP_IMAGE_BUFFERED  0x08
-
+/* Types for the filter elements */
 #define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1            1
 #define NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2            2
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN       3
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET      4
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON             5
 
+/* Configuration of the elements in the processing chain */
 typedef struct {
-	ngx_uint_t	          type;
-	ngx_http_complex_value_t  cv1;
-	ngx_http_complex_value_t  cv2;
-	mj_dropon_t              *dropon;
+	ngx_uint_t	          type;     /* Type of filter element */
+	ngx_http_complex_value_t  cv1;      /* First complex value. Depends on the type if it is used */
+	ngx_http_complex_value_t  cv2;      /* Second complex value. Depends on the type if it is used */
+	mj_dropon_t              *dropon;   /* libmodjpeg dropon type. Depends on the type if it is used */
 } ngx_http_jpeg_filter_element_t;
 
 typedef struct {
-	ngx_uint_t	max_width;
-	ngx_uint_t	max_height;
+	ngx_uint_t	max_width;          /* Max. allowed image width */
+	ngx_uint_t	max_height;         /* Max. allowed image height */
 
-	ngx_flag_t	enable;
-	ngx_flag_t	optimize;
-	ngx_flag_t	progressive;
-	ngx_flag_t 	graceful;
+	ngx_flag_t	enable;             /* Whether the module is enabled */
+	ngx_flag_t	optimize;           /* Whether the resulting JPEG should be optimized */
+	ngx_flag_t	progressive;        /* Whether the resulting JPEG should stored in progressive mode */
+	ngx_flag_t 	graceful;           /* Whether the unmodified image should be sent if processing fails */
 
-	ngx_array_t    *filter_elements;
+	ngx_array_t    *filter_elements;    /* Processing chain */
 
-	size_t		buffer_size;
+	size_t		buffer_size;        /* Max. allowed size of the body */
 } ngx_http_jpeg_filter_conf_t;
 
 typedef struct {
-	u_char		*in_image;
-	u_char		*in_last;
+	u_char		*in_image;          /* Holds the original image */
+	u_char		*in_last;           /* Pointer to the end of in_image */
 
-	u_char		*out_image;
-	u_char 		*out_last;
+	u_char		*out_image;         /* Holds the final processed image */
+	u_char 		*out_last;          /* Pointer to the end of out_image */
 
-	size_t		length;
+	size_t		length;             /* Size of the original image */
 
-	ngx_uint_t	width;
-	ngx_uint_t	height;
+	ngx_uint_t	width;              /* Width of the original image */
+	ngx_uint_t	height;             /* Height of the original image */
 
-	ngx_uint_t	phase;
+	ngx_uint_t	phase;              /* The current phase the module is in */
 } ngx_http_jpeg_filter_ctx_t;
 
+/* The filter functions */
 static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r);
 static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *in);
 
+/* Helper for the filter functions */
 static ngx_int_t ngx_http_jpeg_filter_send(ngx_http_request_t *r, ngx_uint_t image);
 static ngx_uint_t ngx_http_jpeg_filter_test(ngx_http_request_t *r, ngx_chain_t *in);
 static ngx_int_t ngx_http_jpeg_filter_read(ngx_http_request_t *r, ngx_chain_t *in);
 static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r);
 static void ngx_http_jpeg_filter_cleanup(void *data);
-static void ngx_http_jpeg_filter_config_cleanup(void *data);
 
+/* Handling the configuration directives for the effects and dropon */
 static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, void *c);
 static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, void *c);
 
+/* Configuration functions */
 static void *ngx_http_jpeg_filter_create_conf(ngx_conf_t *cf);
 static char *ngx_http_jpeg_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_jpeg_filter_init(ngx_conf_t *cf);
+static void ngx_http_jpeg_filter_conf_cleanup(void *data);
 
+/* Helper functions for complex values */
 static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_http_complex_value_t *cv, ngx_int_t defval);
 static ngx_int_t ngx_http_jpeg_filter_get_string_value(ngx_http_request_t *r, ngx_http_complex_value_t *cv, ngx_str_t *val);
 
+/* Configuration directives */
 static ngx_command_t ngx_http_jpeg_filter_commands[] = {
 	{ ngx_string("jpeg_filter"),
 	  NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
@@ -200,7 +274,7 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 
 	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: ngx_http_jpeg_header_filter");
 
-	if (r->headers_out.status == NGX_HTTP_NOT_MODIFIED) {
+	if(r->headers_out.status == NGX_HTTP_NOT_MODIFIED) {
 		return ngx_http_next_header_filter(r);
 	}
 
@@ -242,10 +316,11 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 	/* Associate our context struct with the request and module context */
 	ngx_http_set_ctx(r, ctx, ngx_http_jpeg_filter_module);
 
-	/* Check for the body length and if we support this. We need to buffer
+	/*
+	 * Check for the body length and if we support this. We need to buffer
 	 * the whole body and we have an upper limit for how much memory we are
 	 * willing to allocate.
-	**/
+	 */
 	len = r->headers_out.content_length_n;
 
 	if(len != -1 && len > (off_t)conf->buffer_size) {
@@ -254,9 +329,10 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 		return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
 	}
 
-	/* In our context for this request, set the length of the body. We need this later
+	/*
+	 * In our context for this request, set the length of the body. We need this later
 	 * in the body filter to allocate the memory for the buffer that we're going to buffer.
-	**/
+	 */
 	if(len == -1) {
 		ctx->length = conf->buffer_size;
 	} else {
@@ -306,19 +382,21 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 		return ngx_http_next_body_filter(r, in);
 	}
 
-	/* Because the body data it most probably split into several chains and this
-	 * function will be called more than once, we have to remember in what "phase" we're in
-	**/
+	/*
+	 * Because the body data it most probably split into several chains and this
+	 * function will be called more than once, we have to keep track in what "phase" we're in
+	 */
 	switch(ctx->phase) {
 	case NGX_HTTP_JPEG_FILTER_PHASE_START:
 		/* This is the first time we see some data for our filter */
 		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: phase START");
 
-		/* Have a taste of the first bytes of data in order to find out
+		/*
+		 * Have a taste of the first bytes of data in order to find out
 		 * if this actually something we should care about and can handle.
-		**/
+		 */
 		if(ngx_http_jpeg_filter_test(r, in) == NGX_HTTP_IMAGE_NONE) {
-			/* Not image data. Send the header and pass on the data */
+			/* No image data. Send the header and pass on the data */
 			ctx->phase = NGX_HTTP_JPEG_FILTER_PHASE_PASS;
 
 			ngx_http_next_header_filter(r);
@@ -343,7 +421,7 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 
 		/* If there was an error, abort and send some error code */
 		if(rc == NGX_ERROR) {
-			return ngx_http_filter_finalize_request(r, &ngx_http_jpeg_filter_module, NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+			return ngx_http_filter_finalize_request(r, &ngx_http_jpeg_filter_module, NGX_HTTP_INTERNAL_SERVER_ERROR);
 		}
 
 		/* Fall through (rc == NGX_OK) */
@@ -352,13 +430,15 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 		/* Now that we have all the bytes from the image, we can go on an process it */
 		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: phase PROCESS");
 
+		/* What ever comes after will be passed through */
 		ctx->phase = NGX_HTTP_JPEG_FILTER_PHASE_PASS;
 
 		rc = ngx_http_jpeg_filter_process(r);
 		if(rc == NGX_ERROR) {
-			/* There was a problem processing the image. Bail out */
+			/* There was a problem processing the image. Either send the original image or an error */
 
 			if(conf->graceful == 1) {
+				/* Send the original image */
 				return ngx_http_jpeg_filter_send(r, NGX_HTTP_JPEG_FILTER_UNMODIFIED);
 			}
 			else {
@@ -381,6 +461,8 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 		/* NGX_ERROR resets any pending data */
 		return (rc == NGX_OK) ? NGX_ERROR : rc;
 	}
+
+	return NGX_OK;
 }
 
 /* Send the data to the next header and body filter */
@@ -422,13 +504,15 @@ static ngx_int_t ngx_http_jpeg_filter_send(ngx_http_request_t *r, ngx_uint_t ima
 	/* The content length must be adjusted */
 	r->headers_out.content_length_n = b->last - b->pos;
 
+	/* No clue what is happening here. Copied from image filter module */
 	if(r->headers_out.content_length) {
 		r->headers_out.content_length->hash = 0;
 	}
 
 	r->headers_out.content_length = NULL;
 
-	/* Now that we are done and we know the final size of the modified body
+	/*
+	 * Now that we are done and we know the final size of the modified body
 	 * we can proceed to the next header filter.
 	 */
 	rc = ngx_http_next_header_filter(r);
@@ -448,9 +532,10 @@ static ngx_uint_t ngx_http_jpeg_filter_test(ngx_http_request_t *r, ngx_chain_t *
 
 	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: ngx_http_jpeg_filter_test");
 
-	/* Checking if we have enough data available such that we can
+	/*
+	 * Checking if we have enough data available such that we can
 	 * decide if we can and should handle it.
-	 **/
+	 */
 	p = in->buf->pos;
 
 	if(in->buf->last - p < 16) {
@@ -535,9 +620,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: ngx_http_jpeg_filter_process");
 
+	/* No clue that this actually does. Copied from image filter module */
 	r->connection->buffered &= ~NGX_HTTP_IMAGE_BUFFERED;
-
-	mj_jpeg_t *m;
 
 	/* Get our context for this request */
 	ctx = ngx_http_get_module_ctx(r, ngx_http_jpeg_filter_module);
@@ -549,8 +633,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	/* Get out module configuration so we know what we actually have to do */
 	conf = ngx_http_get_module_loc_conf(r, ngx_http_jpeg_filter_module);
 
-	/* Read in the image */
-	m = mj_read_jpeg_from_buffer((char *)ctx->in_image, ctx->length);
+	/* Read the image */
+	mj_jpeg_t *m = mj_read_jpeg_from_buffer((char *)ctx->in_image, ctx->length);
 	if(m == NULL) {
 		return NGX_ERROR;
 	}
@@ -560,6 +644,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	ngx_int_t n, align = 0, offset_x = 0, offset_y = 0;
 	ngx_str_t val;
 
+	/* Go through the processing chain */
 	for(i = 0; i < conf->filter_elements->nelts; i++) {
 		switch(felts[i].type) {
 			case NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1:
@@ -572,7 +657,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 					mj_effect_pixelate(m);
 				}
 				else {
-					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: unknown effect \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
 				}
 
 				break;
@@ -603,7 +688,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 					mj_effect_tint(m, 0, -n);
 				}
 				else {
-					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: unknown effect \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
 				}
 
 				break;
@@ -619,6 +704,9 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				else if(ngx_strcmp(val.data, "center") == 0) {
 					align |= MJ_ALIGN_CENTER;
 				}
+				else {
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val.data);
+				}
 
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val);
 
@@ -631,11 +719,14 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				else if(ngx_strcmp(val.data, "center") == 0) {
 					align |= MJ_ALIGN_CENTER;
 				}
+				else {
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val.data);
+				}
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET:
-				offset_x = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv1, offset_x);
-				offset_y = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv2, offset_y);
+				offset_y = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv1, offset_y);
+				offset_x = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv2, offset_x);
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON:
@@ -672,9 +763,10 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	/* Destroy the modified image */
 	mj_destroy_jpeg(m);
 
-	/* Add a cleanup routine for the allocated buffer that holds
+	/*
+	 * Add a cleanup routine for the allocated buffer that holds
 	 * the modified image. We can only destroy it safely after it has been send.
-	 **/
+	 */
 	cln = ngx_pool_cleanup_add(r->pool, 0);
 	if(cln == NULL) {
 		return NGX_ERROR;
@@ -686,6 +778,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	return NGX_OK;
 }
 
+/* Interpret a complex value as an int */
 static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_http_complex_value_t *cv, ngx_int_t defval) {
 	ngx_str_t val;
 	ngx_int_t n;
@@ -699,11 +792,12 @@ static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_h
 	return n;
 }
 
+/* Get the complex value as a string */
 static ngx_int_t ngx_http_jpeg_filter_get_string_value(ngx_http_request_t *r, ngx_http_complex_value_t *cv, ngx_str_t *val) {
 	return ngx_http_complex_value(r, cv, val);
 }
 
-/* Cleanup after we did out job */
+/* Cleanup after the request finished */
 static void ngx_http_jpeg_filter_cleanup(void *data) {
 	ngx_http_jpeg_filter_ctx_t *ctx = data;
 
@@ -714,27 +808,29 @@ static void ngx_http_jpeg_filter_cleanup(void *data) {
 	return;
 }
 
+/* Process the "jpeg_filter_effect" configuration directives */
 static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, void *c) {
 	ngx_http_jpeg_filter_conf_t *conf = c;
 
 	ngx_str_t                         *value;
 	ngx_http_compile_complex_value_t   ccv;
-
-	ngx_http_jpeg_filter_element_t     *fe;
+	ngx_http_jpeg_filter_element_t    *fe;
 
 	value = cf->args->elts;
 
+	/* Initialize the processing chain */
 	if(conf->filter_elements == NULL) {
 		conf->filter_elements = ngx_array_create(cf->pool, 10, sizeof(ngx_http_jpeg_filter_element_t));
 		if(conf->filter_elements == NULL) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to create filter chain");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to create filter chain");
 			return NGX_CONF_ERROR;
 		}
 	}
 
+	/* Add a new element to the processing chain */
 	fe = (ngx_http_jpeg_filter_element_t *)ngx_array_push(conf->filter_elements);
 	if(fe == NULL) {
-		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to add new filter to filter chain (%s)", value[0].data);
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to add new filter to filter chain for \"%s\"", value[0].data);
 		return NGX_CONF_ERROR;
 	}
 
@@ -743,7 +839,7 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	if(cf->args->nelts == 2) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1;
 
-		/* Effect name */
+		/* Get the effect name as complex value */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
 		ccv.cf = cf;
@@ -752,14 +848,14 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value \"%s %s\"", value[0].data, value[1].data);
 			return NGX_CONF_ERROR;
 		}
 	}
 	else if(cf->args->nelts == 3) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2;
 
-		/* Effect name */
+		/* Get the effect name as complex value */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
 		ccv.cf = cf;
@@ -768,11 +864,11 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 
-		/* Effect value */
+		/* Get the effect value as complex value */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
 		ccv.cf = cf;
@@ -781,7 +877,7 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 	}
@@ -789,29 +885,31 @@ static char *ngx_conf_jpeg_filter_effect(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	return NGX_CONF_OK;
 }
 
+/* Process the "jpeg_filter_dropon*" configuration directives */
 static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, void *c) {
 	ngx_http_jpeg_filter_conf_t *conf = c;
 
 	ngx_str_t                         *value;
 	ngx_http_compile_complex_value_t   ccv;
-
-	ngx_http_jpeg_filter_element_t     *fe;
+	ngx_http_jpeg_filter_element_t    *fe;
 
 	ngx_log_debug0(NGX_LOG_DEBUG_CORE, cf->log, 0, "jpeg_filter: ngx_conf_jpeg_filter_dropon");
 
 	value = cf->args->elts;
 
+	/* Initialize the processing chain */
 	if(conf->filter_elements == NULL) {
 		conf->filter_elements = ngx_array_create(cf->pool, 10, sizeof(ngx_http_jpeg_filter_element_t));
 		if(conf->filter_elements == NULL) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to create filter chain");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to create filter chain");
 			return NGX_CONF_ERROR;
 		}
 	}
 
+	/* Add a new element to the processing chain */
 	fe = (ngx_http_jpeg_filter_element_t *)ngx_array_push(conf->filter_elements);
 	if(fe == NULL) {
-		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to add new filter to filter chain (%s)", value[0].data);
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to add new filter to filter chain (%s)", value[0].data);
 		return NGX_CONF_ERROR;
 	}
 
@@ -822,23 +920,25 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
+		/* Vertical alignment (top, bottom, center) */
 		ccv.cf = cf;
 		ccv.value = &value[1];
 		ccv.complex_value = &fe->cv1;
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 
+		/* Horizontal alignment (left, right, center) */
 		ccv.cf = cf;
 		ccv.value = &value[2];
 		ccv.complex_value = &fe->cv2;
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 	}
@@ -847,23 +947,25 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
+		/* Vertical offset */
 		ccv.cf = cf;
 		ccv.value = &value[1];
 		ccv.complex_value = &fe->cv1;
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 
+		/* Horizontal offset */
 		ccv.cf = cf;
 		ccv.value = &value[2];
 		ccv.complex_value = &fe->cv2;
 		ccv.zero = 1;
 
 		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to compile complex value");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 	}
@@ -871,37 +973,40 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON;
 
 		if(cf->args->nelts == 2) {
+			/* Dropon without a mask */
 			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, NULL, 100);
 			if(fe->dropon == NULL) {
-				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load \"%s\"", value[1].data);
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\"", value[1].data);
 				return NGX_CONF_ERROR;
 			}
 		}
 		else if(cf->args->nelts == 3) {
+			/* Dropon with a mask */
 			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, (char *)value[2].data, 100);
 			if(fe->dropon == NULL) {
-				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load \"%s\" or \"%s\"", value[1].data, value[2].data);
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
 				return NGX_CONF_ERROR;
 			}
 		}
 
+		/* Add a cleanup routine for the allocated dropon */
 		ngx_pool_cleanup_t *cln;
 
-		/* Add a cleanup routine for the allocated dropon */
 		cln = ngx_pool_cleanup_add(cf->pool, 0);
 		if(cln == NULL) {
 			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "failed to add cleanup routine for dropon");
 			return NGX_CONF_ERROR;
 		}
 
-		cln->handler = ngx_http_jpeg_filter_config_cleanup;
+		cln->handler = ngx_http_jpeg_filter_conf_cleanup;
 		cln->data = fe->dropon;
 	}
 
 	return NGX_CONF_OK;
 }
 
-static void ngx_http_jpeg_filter_config_cleanup(void *data) {
+/* Cleanup stuff was allocated without a pool during configuration */
+static void ngx_http_jpeg_filter_conf_cleanup(void *data) {
 	mj_dropon_t *d = (mj_dropon_t *)data;
 
 	mj_destroy_dropon(d);
@@ -914,7 +1019,7 @@ static void *ngx_http_jpeg_filter_create_conf(ngx_conf_t *cf) {
 
 	conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_jpeg_filter_conf_t));
 	if(conf == NULL) {
-		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: unable to allocate memory for filter config");
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to allocate memory for filter config");
 		return NGX_CONF_ERROR;
 	}
 
