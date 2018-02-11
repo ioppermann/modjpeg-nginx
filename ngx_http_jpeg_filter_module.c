@@ -705,6 +705,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN:
+				align = 0;
+
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
 
 				if(ngx_strcmp(val.data, "top") == 0) {
@@ -988,7 +990,7 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 		if(cf->args->nelts == 2) {
 			/* Dropon without a mask */
-			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, NULL, 100);
+			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, NULL, MJ_BLEND_FULL);
 			if(fe->dropon == NULL) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\"", value[1].data);
 				return NGX_CONF_ERROR;
@@ -996,7 +998,7 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		}
 		else if(cf->args->nelts == 3) {
 			/* Dropon with a mask */
-			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, (char *)value[2].data, 100);
+			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL);
 			if(fe->dropon == NULL) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
 				return NGX_CONF_ERROR;
