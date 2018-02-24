@@ -36,6 +36,10 @@
  * Default: off
  * Context: http, server, location
  *
+ * jpeg_filter_arithmetric on|off
+ * Default: off
+ * Context: http, server, location
+ *
  * jpeg_filter_graceful on|off
  * Default: off
  * Context: http, server, location
@@ -108,8 +112,9 @@ typedef struct {
 	ngx_uint_t	max_height;         /* Max. allowed image height */
 
 	ngx_flag_t	enable;             /* Whether the module is enabled */
-	ngx_flag_t	optimize;           /* Whether the resulting JPEG should be optimized */
+	ngx_flag_t	optimize;           /* Whether to optimize the Huffman tables in the resulting JPEG */
 	ngx_flag_t	progressive;        /* Whether the resulting JPEG should stored in progressive mode */
+	ngx_flag_t      arithmetric;        /* Whether to use arithmetric coding in the resulting JPEG */
 	ngx_flag_t 	graceful;           /* Whether the unmodified image should be sent if processing fails */
 
 	ngx_array_t    *filter_elements;    /* Processing chain */
@@ -192,6 +197,13 @@ static ngx_command_t ngx_http_jpeg_filter_commands[] = {
 	  ngx_conf_set_flag_slot,
 	  NGX_HTTP_LOC_CONF_OFFSET,
 	  offsetof(ngx_http_jpeg_filter_conf_t, progressive),
+	  NULL },
+
+	{ ngx_string("jpeg_filter_arithmetric"),
+	  NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+	  ngx_conf_set_flag_slot,
+	  NGX_HTTP_LOC_CONF_OFFSET,
+	  offsetof(ngx_http_jpeg_filter_conf_t, arithmetric),
 	  NULL },
 
 	{ ngx_string("jpeg_filter_graceful"),
@@ -761,6 +773,10 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 	if(conf->progressive) {
 		options |= MJ_OPTION_PROGRESSIVE;
+	}
+
+	if(conf->arithmetric) {
+		options |= MJ_OPTION_ARITHMETRIC;
 	}
 
 	/* Write the modified image to a new buffer */
