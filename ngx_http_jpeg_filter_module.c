@@ -135,6 +135,7 @@ typedef struct {
 	ngx_uint_t	height;             /* Height of the original image */
 
 	ngx_uint_t	phase;              /* The current phase the module is in */
+	ngx_uint_t      skip;               /* Skip the processing of the body */
 } ngx_http_jpeg_filter_ctx_t;
 
 /* The filter functions */
@@ -343,6 +344,7 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "jpeg_filter: too big response: %O", len);
 
 		if(conf->graceful == 1) {
+			ctx->skip = 1;
 			return ngx_http_next_header_filter(r);
 		}
 
@@ -402,6 +404,11 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 		return ngx_http_next_body_filter(r, in);
 	}
 
+	if(ctx->skip == 1) {
+		/* The header filter tells us to skip the processing of the body */
+		return ngx_http_next_body_filter(r, in);
+	}
+
 	/*
 	 * Because the body data it most probably split into several chains and this
 	 * function will be called more than once, we have to keep track in what "phase" we're in
@@ -419,6 +426,9 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 			/* No image data. Send the header and pass on the data */
 			ctx->phase = NGX_HTTP_JPEG_FILTER_PHASE_PASS;
 
+			/* Proceed to the next header filter as well because
+			 * we were holding it back so far.
+			 */
 			ngx_http_next_header_filter(r);
 			return ngx_http_next_body_filter(r, in);
 		}
