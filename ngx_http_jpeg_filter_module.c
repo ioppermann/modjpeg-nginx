@@ -342,6 +342,10 @@ static ngx_int_t ngx_http_jpeg_header_filter(ngx_http_request_t *r) {
 	if(len != -1 && len > (off_t)conf->buffer_size) {
 		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "jpeg_filter: too big response: %O", len);
 
+		if(conf->graceful == 1) {
+			return ngx_http_next_header_filter(r);
+		}
+
 		return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
 	}
 
