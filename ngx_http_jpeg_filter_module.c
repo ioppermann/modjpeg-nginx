@@ -664,16 +664,18 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	conf = ngx_http_get_module_loc_conf(r, ngx_http_jpeg_filter_module);
 
 	/* Read the image */
-	mj_jpeg_t *m = mj_read_jpeg_from_buffer((char *)ctx->in_image, ctx->length);
-	if(m == NULL) {
+	mj_jpeg_t m;
+	mj_init_jpeg(&m);
+
+	if(mj_read_jpeg_from_buffer(&m, (char *)ctx->in_image, ctx->length) != MJ_OK) {
 		return NGX_ERROR;
 	}
 
 	if(
-		(conf->max_width != 0 && (ngx_uint_t)m->width > conf->max_width) ||
-		(conf->max_height != 0 && (ngx_uint_t)m->height > conf->max_height)
+		(conf->max_width != 0 && (ngx_uint_t)m.width > conf->max_width) ||
+		(conf->max_height != 0 && (ngx_uint_t)m.height > conf->max_height)
 	) {
-		mj_destroy_jpeg(m);
+		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
 
@@ -689,10 +691,10 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
 
 				if(ngx_strcmp(val.data, "grayscale") == 0) {
-					mj_effect_grayscale(m);
+					mj_effect_grayscale(&m);
 				}
 				else if(ngx_strcmp(val.data, "pixelate") == 0) {
-					mj_effect_pixelate(m);
+					mj_effect_pixelate(&m);
 				}
 				else {
 					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
@@ -708,22 +710,22 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				}
 
 				if(ngx_strcmp(val.data, "brighten") == 0) {
-					mj_effect_luminance(m, n);
+					mj_effect_luminance(&m, n);
 				}
 				else if(ngx_strcmp(val.data, "darken") == 0) {
-					mj_effect_luminance(m, -n);
+					mj_effect_luminance(&m, -n);
 				}
 				else if(ngx_strcmp(val.data, "tintblue") == 0) {
-					mj_effect_tint(m, n, 0);
+					mj_effect_tint(&m, n, 0);
 				}
 				else if(ngx_strcmp(val.data, "tintyellow") == 0) {
-					mj_effect_tint(m, -n, 0);
+					mj_effect_tint(&m, -n, 0);
 				}
 				else if(ngx_strcmp(val.data, "tintred") == 0) {
-					mj_effect_tint(m, 0, n);
+					mj_effect_tint(&m, 0, n);
 				}
 				else if(ngx_strcmp(val.data, "tintgreen") == 0) {
-					mj_effect_tint(m, 0, -n);
+					mj_effect_tint(&m, 0, -n);
 				}
 				else {
 					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
@@ -770,7 +772,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON:
-				mj_compose(m, felts[i].dropon, align, offset_x, offset_y);
+				mj_compose(&m, felts[i].dropon, align, offset_x, offset_y);
 
 				break;
 			default:
@@ -797,15 +799,15 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 	size_t len;
 
-	if(mj_write_jpeg_to_buffer(m, (char **)&ctx->out_image, &len, options) != 0) {
-		mj_destroy_jpeg(m);
+	if(mj_write_jpeg_to_buffer(&m, (char **)&ctx->out_image, &len, options) != 0) {
+		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
 
 	ctx->out_last = ctx->out_image + len;
 
 	/* Destroy the modified image */
-	mj_destroy_jpeg(m);
+	mj_free_jpeg(&m);
 
 	/*
 	 * Add a cleanup routine for the allocated buffer that holds
@@ -1027,18 +1029,24 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon") == 0) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON;
 
+		fe->dropon = (mj_dropon_t *)ngx_palloc(cf->pool, sizeof(mj_dropon_t));
+		if(fe->dropon == NULL) {
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not allocate memory for dropon");
+			return NGX_CONF_ERROR;
+		}
+
+		mj_init_dropon(fe->dropon);
+
 		if(cf->args->nelts == 2) {
 			/* Dropon without a mask */
-			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, NULL, MJ_BLEND_FULL);
-			if(fe->dropon == NULL) {
+			if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\"", value[1].data);
 				return NGX_CONF_ERROR;
 			}
 		}
 		else if(cf->args->nelts == 3) {
 			/* Dropon with a mask */
-			fe->dropon = mj_read_dropon_from_jpeg((char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL);
-			if(fe->dropon == NULL) {
+			if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
 				return NGX_CONF_ERROR;
 			}
@@ -1064,7 +1072,7 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 static void ngx_http_jpeg_filter_conf_cleanup(void *data) {
 	mj_dropon_t *d = (mj_dropon_t *)data;
 
-	mj_destroy_dropon(d);
+	mj_free_dropon(d);
 
 	return;
 }
