@@ -827,11 +827,16 @@ static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_h
 	ngx_str_t val;
 	ngx_int_t n;
 
-	if(ngx_http_complex_value(r, cv, &val) != NGX_OK) {
-		return defval;
+	if(cv->lengths == NULL) {
+		n = ngx_atoi(cv->value.data, cv->value.len);
 	}
+	else {
+		if(ngx_http_complex_value(r, cv, &val) != NGX_OK) {
+			return defval;
+		}
 
-	n = ngx_atoi(val.data, val.len);
+		n = ngx_atoi(val.data, val.len);
+	}
 
 	return n;
 }
