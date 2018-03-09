@@ -702,7 +702,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 			case NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2:
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
 
-				n = ngx_http_jpeg_filter_get_int_value(r, &felts[1].cv2, 0);
+				n = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv2, 0);
 				if(n < 0) {
 					n = 0;
 				}
@@ -964,9 +964,9 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_align") == 0) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN;
 
+		/* Vertical alignment (top, bottom, center) */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
-		/* Vertical alignment (top, bottom, center) */
 		ccv.cf = cf;
 		ccv.value = &value[1];
 		ccv.complex_value = &fe->cv1;
@@ -978,6 +978,8 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		}
 
 		/* Horizontal alignment (left, right, center) */
+		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
 		ccv.cf = cf;
 		ccv.value = &value[2];
 		ccv.complex_value = &fe->cv2;
@@ -991,9 +993,9 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_offset") == 0) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET;
 
+		/* Vertical offset */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
-		/* Vertical offset */
 		ccv.cf = cf;
 		ccv.value = &value[1];
 		ccv.complex_value = &fe->cv1;
@@ -1005,6 +1007,8 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		}
 
 		/* Horizontal offset */
+		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
 		ccv.cf = cf;
 		ccv.value = &value[2];
 		ccv.complex_value = &fe->cv2;
