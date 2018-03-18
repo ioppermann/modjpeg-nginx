@@ -1,25 +1,56 @@
 # modjpeg-nginx
 
-nginx module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
+nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
 
 
 ## Installation
 
 ```
-# ./configure --add_module="..."
+# ./configure --add_module="/path/to/modjpeg-nginx/module"
+```
+
+## Synopsis
+
+```nginx
+   ...
+
+   location /gallery {
+   	# enable jpeg filter module
+   	jpeg_filter on;
+
+   	# limit image sizes to 3000x3000 pixel
+   	jpeg_filter_max_width 3000;
+   	jpeg_filter_max_height 3000;
+
+   	# limit image file size to 5 megabytes
+   	jpeg_filter_buffer 5M;
+
+   	# deliver the images unmodified if one of the limits apply
+   	jpeg_filter_graceful on;
+
+   	# pixelate the image
+   	jpeg_filter_effect pixelate;
+
+   	# add a masked logo in the bottom right corner
+   	# with a distance of 10 pixel from the border
+   	jpeg_filter_dropon_align bottom right;
+   	jpeg_filter_dropon_offset -10 -10;
+   	jpeg_filter_dropon /path/to/logo.jpg /path/to/mask.jpg
+   }
+
+   ...
 ```
 
 ## Directives
 
-
 - [jpeg_filter](#jpeg_filter)
 - [jpeg_filter_max_width](#jpeg_filter_max_width)
 - [jpeg_filter_max_height](#jpeg_filter_max_height)
+- [jpeg_filter_buffer](#jpeg_filter_buffer)
 - [jpeg_filter_optimize](#jpeg_filter_optimize)
 - [jpeg_filter_progressive](#jpeg_filter_progressive)
 - [jpeg_filter_arithmetric](#jpeg_filter_arithmetric)
 - [jpeg_filter_graceful](#jpeg_filter_graceful)
-- [jpeg_filter_buffer](#jpeg_filter_buffer)
 - [jpeg_filter_effect](#jpeg_filter_effect)
 - [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
 - [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
@@ -67,6 +98,20 @@ Set the maximum height to 0 in order to always apply the jpeg filter. Set [jpeg_
 This directive is set to 0 by default.
 
 
+### jpeg_filter_buffer
+
+__Syntax:__ `jpeg_filter_buffer size`
+
+__Default:__ `2M`
+
+__Context:__ `http, server, location`
+
+The maximum file size of the image to operate on. If the file size if bigger than `size`, the jpeg filter will return a "415 Unsupported Media Type".
+Set [jpeg_filter_graceful](#jpeg_filter_graceful) to `on` to deliver the image unchanged.
+
+This directive is set to 2 megabyte by default.
+
+
 ### jpeg_filter_optimize
 
 __Syntax:__ `jpeg_filter_optimize on | off`
@@ -102,7 +147,8 @@ __Default:__ `off`
 __Context:__ `http, server, location`
 
 Upon delivery, enable arithmetric encoding of the image.
-This will override the [jpeg_filter_optimize](#jpeg_filter_optimize) directive and usually not supported by browsers.
+This will override the [jpeg_filter_optimize](#jpeg_filter_optimize) directive.
+Arithmetric encoding is usually not supported by browsers.
 
 This directive is turned off by default.
 
@@ -120,20 +166,6 @@ Allow to deliver the unchanged image in case the directives [jpeg_filter_max_wid
 This directive is turned off by default.
 
 
-### jpeg_filter_buffer
-
-__Syntax:__ `jpeg_filter_buffer size`
-
-__Default:__ `2M`
-
-__Context:__ `http, server, location`
-
-The maximum file size of the image to operate on. If the file size if bigger than `size`, the jpeg filter will return a "415 Unsupported Media Type".
-Set [jpeg_filter_graceful](#jpeg_filter_graceful) to `on` to deliver the image unchanged.
-
-This directive is set to 2 megabyte by default.
-
-
 ### jpeg_filter_effect
 
 __Syntax:__ `jpeg_filter_effect grayscale | pixelate`
@@ -146,7 +178,7 @@ __Default:__ `-`
 
 __Context:__ `location`
 
-Apply a filter to the image.
+Apply an effect to the image.
 
 `grayscale` will remove all color components from the image. This only applies to images in the YCbCr color space.
 
@@ -177,6 +209,8 @@ __Context:__ `location`
 
 Align the dropon on the image. Use the directive [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset) to offset the dropon from the alignment.
 
+This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in order to have an effect on the dropon.
+
 This directive will apply the dropon in the center of the image by default.
 
 
@@ -191,7 +225,9 @@ __Context:__ `location`
 Offset the dropon by `vertical` and `horizontal` pixels from the alignment given with the [jpeg_filter_dropon_align](#jpeg_filter_dropon_align) directive.
 Use a negative value to move the dropon up or left and a positive value to move the dropon down or right.
 
-This directive not apply an offset by default.
+This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in order to have an effect on the dropon.
+
+This directive will not apply an offset by default.
 
 
 ### jpeg_filter_dropon
@@ -205,7 +241,7 @@ __Default:__ `-`
 __Context:__ `location`
 
 Apply a dropon to the image. The dropon is given by a path to a JPEG image for `image` and optionally a path to a JPEG image for `mask`. If no mask image is
-provided, the image will applied without transcluency. If a mask image is provided, only the luminance component will be used. For the mask, black means
+provided, the image will be applied without transcluency. If a mask image is provided, only the luminance component will be used. For the mask, black means
 fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
 
 This directive is not set by default.
