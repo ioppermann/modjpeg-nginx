@@ -3,10 +3,20 @@
 nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
 
 
+## Typical Uses
+
+- You are a photographer and have a gallery of JPEG images on your website.
+- Online shop with product images
+- Paywall
+- Personalized logo on image
+- Avatar on image
+- Visual watermark
+
+
 ## Installation
 
 ```
-# ./configure --add_module="/path/to/modjpeg-nginx/module"
+# ./configure --add_module="/path/to/modjpeg-nginx"
 ```
 
 ## Synopsis
@@ -55,6 +65,7 @@ nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
 - [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
 - [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
 - [jpeg_filter_dropon](#jpeg_filter_dropon)
+- [Notes](#notes)
 
 
 ### jpeg_filter
@@ -245,6 +256,18 @@ provided, the image will be applied without transcluency. If a mask image is pro
 fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
 
 This directive is not set by default.
+
+
+### Notes
+
+The directives `jpeg_filter_effect`, `jpeg_filter_dropon_align`, `jpeg_filter_dropon_offset`, and `jpeg_filter_dropon` are applied in the order they
+appear in the nginx config file, i.e. it makes a difference if you apply first an effect then add a dropon or vice versa. In the former the dropon will be
+unaffected by the effect and in the latter the effect will be also applied on the dropon.
+
+
+## License
+
+This module is distributed under the BSD license. Refer to [LICENSE](/blob/master/LICENSE).
 
 
 ## Acknowledgement
