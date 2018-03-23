@@ -690,6 +690,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 			case NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1:
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
 
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s'", val.data);
+
 				if(ngx_strcmp(val.data, "grayscale") == 0) {
 					mj_effect_grayscale(&m);
 				}
@@ -708,6 +710,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				if(n < 0) {
 					n = 0;
 				}
+
+				ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s(%d)'", val.data, n);
 
 				if(ngx_strcmp(val.data, "brighten") == 0) {
 					mj_effect_luminance(&m, n);
@@ -737,6 +741,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
 
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val.data);
+
 				if(ngx_strcmp(val.data, "top") == 0) {
 					align |= MJ_ALIGN_TOP;
 				}
@@ -751,6 +757,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				}
 
 				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val);
+
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val.data);
 
 				if(ngx_strcmp(val.data, "left") == 0) {
 					align |= MJ_ALIGN_LEFT;
@@ -770,8 +778,12 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				offset_y = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv1, offset_y);
 				offset_x = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv2, offset_x);
 
+				ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon offset (%dpx,%dpx)", offset_y, offset_x);
+
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON:
+				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon");
+
 				mj_compose(&m, felts[i].dropon, align, offset_x, offset_y);
 
 				break;
@@ -794,6 +806,8 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	if(conf->arithmetric) {
 		options |= MJ_OPTION_ARITHMETRIC;
 	}
+
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: JPEG output options %d", options);
 
 	/* Write the modified image to a new buffer */
 
