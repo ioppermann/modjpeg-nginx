@@ -28,9 +28,8 @@ nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
    	# enable jpeg filter module
    	jpeg_filter on;
 
-   	# limit image sizes to 3000x3000 pixel
-   	jpeg_filter_max_width 3000;
-   	jpeg_filter_max_height 3000;
+   	# limit image sizes to 9 megapixel pixel
+   	jpeg_filter_max_pixel 9000000;
 
    	# limit image file size to 5 megabytes
    	jpeg_filter_buffer 5M;
@@ -54,8 +53,7 @@ nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
 ## Directives
 
 - [jpeg_filter](#jpeg_filter)
-- [jpeg_filter_max_width](#jpeg_filter_max_width)
-- [jpeg_filter_max_height](#jpeg_filter_max_height)
+- [jpeg_filter_max_pixel](#jpeg_filter_max_pixel)
 - [jpeg_filter_buffer](#jpeg_filter_buffer)
 - [jpeg_filter_optimize](#jpeg_filter_optimize)
 - [jpeg_filter_progressive](#jpeg_filter_progressive)
