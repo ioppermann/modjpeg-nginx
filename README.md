@@ -28,7 +28,7 @@ nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
    	# enable jpeg filter module
    	jpeg_filter on;
 
-   	# limit image sizes to 9 megapixel pixel
+   	# limit image sizes to 9 megapixel
    	jpeg_filter_max_pixel 9000000;
 
    	# limit image file size to 5 megabytes
@@ -193,7 +193,7 @@ Apply an effect to the image.
 
 This directive is not set by default.
 
-Both parameter can contain variables.
+All parameters can contain variables.
 
 
 ### jpeg_filter_dropon_align
@@ -249,8 +249,8 @@ This directive is not set by default.
 
 All parameters can contain variables.
 
-If none of the parameters contains variables, the dropon is loaded during loading the configuration. If at least one parameter contains variables the dropon
-will be loaded during processing the request. After processing the request the dropon will be unloaded.
+If none of the parameters contain variables, the dropon is loaded during loading of the configuration. If at least one parameter contains variables, the dropon
+will be loaded during processing of the request. After processing the request, the dropon will be unloaded.
 
 
 ### Notes
