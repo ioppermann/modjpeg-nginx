@@ -10,19 +10,12 @@ Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](ht
 
 This filter module can add overlays (e.g. a logo, visual watermark) on JPEGs when they are requested.
 
-Consider you are a photographer and have a image gallery on your website. Without hardcoding your
-logo (brand, watermark, ...) into these images you can apply it the moment the image is requested. Whenever
-you update your logo, just update the nginx configuration and it's done. No need to re-process all your images.
+A few ideas:
 
-You have an online shop with thousands of product images. With just configuring nginx you can add your logo
-to all of the product images. You don't have to process all product images.
-
-You have a paid service. Add a watermark to all images if the user is not subscribed. If the user is subscribed,
-don't apply the watermark or put just a small logo on the images without touching the original images.
-
-On your website, registered users can upload images. Add the avatar of the user to the image who uploaded the
-image without processing it after the upload. If the user changes her avatar, all her images will automatically
-have the new avatar on them.
+- Consider you are a photographer and have a image gallery on your website. Without hardcoding your logo (brand, watermark, ...) into these images you can apply it the moment the image is requested. Whenever you update your logo, just update the nginx configuration and it's done. No need to re-process all your images.
+- You have an online shop with thousands of product images. With just configuring nginx you can add your logo to all of the product images. You don't have to process all product images.
+- You have a paid service. Add a watermark to all images if the user is not subscribed. If the user is subscribed, don't apply the watermark or put just a small logo on the images without touching the original images.
+- On your website, registered users can upload images. Add the avatar of the user to the image who uploaded the image without processing it after the upload. If the user changes her avatar, all her images will automatically have the new avatar on them.
 
 
 ## Installation
@@ -59,6 +52,17 @@ cd nginx-1.13.10
 make
 make install
 ```
+
+
+## Compatibility
+
+This module has been tested with the following versions of nginx:
+
+- 1.13.10
+- 1.12.2
+- 1.10.3
+- 1.8.1
+
 
 ## Synopsis
 
