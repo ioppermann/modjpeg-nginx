@@ -92,6 +92,8 @@
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN    3
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET   4
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON          5
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON1         6
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON2         7
 
 #define NGX_HTTP_JPEG_FILTER_BUFFER_SIZE          2 * 1024 * 1024
 
@@ -663,95 +665,95 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	ngx_http_jpeg_filter_element_t *felts = conf->filter_elements->elts;
 	ngx_uint_t i;
 	ngx_int_t n, align = 0, offset_x = 0, offset_y = 0;
-	ngx_str_t val;
+	ngx_str_t val1, val2;
 
 	/* Go through the processing chain */
 	for(i = 0; i < conf->filter_elements->nelts; i++) {
 		switch(felts[i].type) {
 			case NGX_HTTP_JPEG_FILTER_TYPE_EFFECT1:
-				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
+				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
-				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s'", val.data);
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s'", val1.data);
 
-				if(ngx_strcmp(val.data, "grayscale") == 0) {
+				if(ngx_strcmp(val1.data, "grayscale") == 0) {
 					mj_effect_grayscale(&m);
 				}
-				else if(ngx_strcmp(val.data, "pixelate") == 0) {
+				else if(ngx_strcmp(val1.data, "pixelate") == 0) {
 					mj_effect_pixelate(&m);
 				}
 				else {
-					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_NOTICE, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val1.data);
 				}
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_EFFECT2:
-				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
+				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
 				n = ngx_http_jpeg_filter_get_int_value(r, &felts[i].cv2, 0);
 				if(n < 0) {
 					n = 0;
 				}
 
-				ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s(%d)'", val.data, n);
+				ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying effect '%s(%d)'", val1.data, n);
 
-				if(ngx_strcmp(val.data, "brighten") == 0) {
+				if(ngx_strcmp(val1.data, "brighten") == 0) {
 					mj_effect_luminance(&m, n);
 				}
-				else if(ngx_strcmp(val.data, "darken") == 0) {
+				else if(ngx_strcmp(val1.data, "darken") == 0) {
 					mj_effect_luminance(&m, -n);
 				}
-				else if(ngx_strcmp(val.data, "tintblue") == 0) {
+				else if(ngx_strcmp(val1.data, "tintblue") == 0) {
 					mj_effect_tint(&m, n, 0);
 				}
-				else if(ngx_strcmp(val.data, "tintyellow") == 0) {
+				else if(ngx_strcmp(val1.data, "tintyellow") == 0) {
 					mj_effect_tint(&m, -n, 0);
 				}
-				else if(ngx_strcmp(val.data, "tintred") == 0) {
+				else if(ngx_strcmp(val1.data, "tintred") == 0) {
 					mj_effect_tint(&m, 0, n);
 				}
-				else if(ngx_strcmp(val.data, "tintgreen") == 0) {
+				else if(ngx_strcmp(val1.data, "tintgreen") == 0) {
 					mj_effect_tint(&m, 0, -n);
 				}
 				else {
-					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid effect \"%s\"", val1.data);
 				}
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN:
 				align = 0;
 
-				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val);
+				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
-				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val.data);
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val1.data);
 
-				if(ngx_strcmp(val.data, "top") == 0) {
+				if(ngx_strcmp(val1.data, "top") == 0) {
 					align |= MJ_ALIGN_TOP;
 				}
-				else if(ngx_strcmp(val.data, "bottom") == 0) {
+				else if(ngx_strcmp(val1.data, "bottom") == 0) {
 					align |= MJ_ALIGN_BOTTOM;
 				}
-				else if(ngx_strcmp(val.data, "center") == 0) {
+				else if(ngx_strcmp(val1.data, "center") == 0) {
 					align |= MJ_ALIGN_CENTER;
 				}
 				else {
-					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val1.data);
 				}
 
-				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val);
+				ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val1);
 
-				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val.data);
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon align '%s'", val1.data);
 
-				if(ngx_strcmp(val.data, "left") == 0) {
+				if(ngx_strcmp(val1.data, "left") == 0) {
 					align |= MJ_ALIGN_LEFT;
 				}
-				else if(ngx_strcmp(val.data, "right") == 0) {
+				else if(ngx_strcmp(val1.data, "right") == 0) {
 					align |= MJ_ALIGN_RIGHT;
 				}
-				else if(ngx_strcmp(val.data, "center") == 0) {
+				else if(ngx_strcmp(val1.data, "center") == 0) {
 					align |= MJ_ALIGN_CENTER;
 				}
 				else {
-					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val.data);
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: invalid alignment \"%s\"", val1.data);
 				}
 
 				break;
@@ -763,9 +765,36 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 				break;
 			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON:
-				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dropon");
-
+				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying preloaded dropon");
 				mj_compose(&m, felts[i].dropon, align, offset_x, offset_y);
+
+				break;
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON1:
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON2:
+				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dynamic dropon");
+
+				mj_dropon_t d;
+				mj_init_dropon(&d);
+
+				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON1) {
+					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
+
+					if(mj_read_dropon_from_jpeg(&d, (char *)val1.data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\"", val1.data);
+					}
+				}
+				else {
+					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
+					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val2);
+
+					if(mj_read_dropon_from_jpeg(&d, (char *)val1.data, (char *)val2.data, MJ_BLEND_FULL) != MJ_OK) {
+						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", val1.data, val2.data);
+					}
+				}
+
+				mj_compose(&m, &d, align, offset_x, offset_y);
+
+				mj_free_dropon(&d);
 
 				break;
 			default:
@@ -1024,40 +1053,91 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon") == 0) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON;
 
-		fe->dropon = (mj_dropon_t *)ngx_palloc(cf->pool, sizeof(mj_dropon_t));
-		if(fe->dropon == NULL) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not allocate memory for dropon");
+		ngx_int_t has_variables = 0;
+
+		/* Dropon */
+		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+		ccv.cf = cf;
+		ccv.value = &value[1];
+		ccv.complex_value = &fe->cv1;
+		ccv.zero = 1;
+
+		if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 			return NGX_CONF_ERROR;
 		}
 
-		mj_init_dropon(fe->dropon);
+		if(fe->cv1.lengths != NULL) {
+			has_variables = 1;
+		}
 
-		if(cf->args->nelts == 2) {
-			/* Dropon without a mask */
-			if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
-				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\"", value[1].data);
+		if(cf->args->nelts == 3) {
+			/* Mask */
+			ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+			ccv.cf = cf;
+			ccv.value = &value[2];
+			ccv.complex_value = &fe->cv2;
+			ccv.zero = 1;
+
+			if(ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to compile complex value for \"%s %s %s\"", value[0].data, value[1].data, value[2].data);
 				return NGX_CONF_ERROR;
 			}
-		}
-		else if(cf->args->nelts == 3) {
-			/* Dropon with a mask */
-			if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
-				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter_dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
-				return NGX_CONF_ERROR;
+
+			if(fe->cv2.lengths != NULL) {
+				has_variables = 1;
 			}
 		}
 
-		/* Add a cleanup routine for the allocated dropon */
-		ngx_pool_cleanup_t *cln;
+		// Check if there are any variables in the values
+		if(has_variables == 0) {
+			fe->dropon = (mj_dropon_t *)ngx_palloc(cf->pool, sizeof(mj_dropon_t));
+			if(fe->dropon == NULL) {
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: could not allocate memory for dropon");
+				return NGX_CONF_ERROR;
+			}
 
-		cln = ngx_pool_cleanup_add(cf->pool, 0);
-		if(cln == NULL) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "failed to add cleanup routine for dropon");
-			return NGX_CONF_ERROR;
+			mj_init_dropon(fe->dropon);
+
+			if(cf->args->nelts == 2) {
+				/* Dropon without a mask */
+				if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\"", value[1].data);
+					return NGX_CONF_ERROR;
+				}
+			}
+			else {
+				/* Dropon with a mask */
+				if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
+					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
+					return NGX_CONF_ERROR;
+				}
+			}
+
+			/* Add a cleanup routine for the allocated dropon */
+			ngx_pool_cleanup_t *cln;
+
+			cln = ngx_pool_cleanup_add(cf->pool, 0);
+			if(cln == NULL) {
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: failed to add cleanup routine for dropon");
+				return NGX_CONF_ERROR;
+			}
+
+			cln->handler = ngx_http_jpeg_filter_conf_cleanup;
+			cln->data = fe->dropon;
 		}
+		else {
+			if(cf->args->nelts == 2) {
+				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON1;
+			}
+			else {
+				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON2;
+			}
 
-		cln->handler = ngx_http_jpeg_filter_conf_cleanup;
-		cln->data = fe->dropon;
+			fe->dropon = NULL;
+		}
 	}
 
 	return NGX_CONF_OK;

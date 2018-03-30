@@ -212,7 +212,7 @@ This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in o
 
 This directive will apply the dropon in the center of the image by default.
 
-Both parameter can contain variables.
+All parameters can contain variables.
 
 
 ### jpeg_filter_dropon_offset
@@ -230,7 +230,7 @@ This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in o
 
 This directive will not apply an offset by default.
 
-Both parameter can contain variables.
+All parameters can contain variables.
 
 
 ### jpeg_filter_dropon
@@ -248,6 +248,11 @@ provided, the image will be applied without transcluency. If a mask image is pro
 fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
 
 This directive is not set by default.
+
+All parameters can contain variables.
+
+If none of the parameters contains variables, the dropon is loaded during loading the configuration. If at least one parameter contains variables the dropon
+will be loaded during processing the request. After processing the request the dropon will be unloaded.
 
 
 ### Notes
