@@ -1,22 +1,62 @@
 # modjpeg-nginx
 
-nginx filter module for [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
+Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
 
+> With libmodjpeg you can overlay a (masked) image onto an existing JPEG as lossless as possible. Changes in the JPEG only
+> take place where the overlayed image is applied. All modifications happen in the DCT domain, thus the JPEG is decoded and
+> encoded losslessly.
 
 ## Typical Uses
 
-- You are a photographer and have a gallery of JPEG images on your website.
-- Online shop with product images
-- Paywall
-- Personalized logo on image
-- Avatar on image
-- Visual watermark
+This filter module can add overlays (e.g. a logo, visual watermark) on JPEGs when they are requested.
+
+Consider you are a photographer and have a image gallery on your website. Without hardcoding your
+logo (brand, watermark, ...) into these image you can apply it the moment the image is requested. Whenever
+you update your logo, just update the nginx configuration and it's done. No need to re-process all your images.
+
+You have an online shop with thousands of product images. With just configuring nginx you can add your logo
+to all of the product images. You don't have to process all product photos.
+
+You have a paid service. Add a watermark to all images if the user is not subscribed. If the user is subscribed,
+don't apply the watermark or put just a small logo on the images without touching the original images.
+
+On your website, registered users can upload images. Add the avatar of the user to the image who uploaded the
+image without processing it after the upload.
 
 
 ## Installation
 
-```
-# ./configure --add_module="/path/to/modjpeg-nginx"
+For using the modjpeg-nginx filter module, follow these steps:
+
+1. Clone and install [libmodjpeg](https://github.com/ioppermann/libmodjpeg) (libjpeg and cmake are required)
+2. Clone this repository
+3. Download and extract the [latest nginx](http://nginx.org/en/download.html)
+4. Configure, compile, and install nginx
+
+```bash
+# Clone and install libmodjpeg
+git clone https://github.com/ioppermann/libmodjpeg.git
+cd libmodjpeg
+cmake .
+make
+make install
+cd ..
+
+# Clone modjpeg-nginx
+git clone https://github.com/ioppermann/modjpeg-nginx.git
+
+# Download and install nginx
+wget 'http://nginx.org/download/nginx-1.13.10.tar.gz'
+tar -xvzf nginx-1.13.10.tar.gz
+cd nginx-1.13.10
+
+./configure --add_module=../modjpeg-nginx
+
+# You may want to use the other './configure' options that are used
+# in your current nginx build. Check the output of 'nginx -V'.
+
+make
+make install
 ```
 
 ## Synopsis
