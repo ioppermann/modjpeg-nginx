@@ -1,6 +1,6 @@
 # modjpeg-nginx
 
-Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](https://github.com/ioppermann/libmodjpeg)
+Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](https://github.com/ioppermann/libmodjpeg).
 
 > With libmodjpeg you can overlay a (masked) image onto an existing JPEG as lossless as possible. Changes in the JPEG only
 > take place where the overlayed image is applied. All modifications happen in the DCT domain, thus the JPEG is decoded and
@@ -11,17 +11,18 @@ Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](ht
 This filter module can add overlays (e.g. a logo, visual watermark) on JPEGs when they are requested.
 
 Consider you are a photographer and have a image gallery on your website. Without hardcoding your
-logo (brand, watermark, ...) into these image you can apply it the moment the image is requested. Whenever
+logo (brand, watermark, ...) into these images you can apply it the moment the image is requested. Whenever
 you update your logo, just update the nginx configuration and it's done. No need to re-process all your images.
 
 You have an online shop with thousands of product images. With just configuring nginx you can add your logo
-to all of the product images. You don't have to process all product photos.
+to all of the product images. You don't have to process all product images.
 
 You have a paid service. Add a watermark to all images if the user is not subscribed. If the user is subscribed,
 don't apply the watermark or put just a small logo on the images without touching the original images.
 
 On your website, registered users can upload images. Add the avatar of the user to the image who uploaded the
-image without processing it after the upload.
+image without processing it after the upload. If the user changes her avatar, all her images will automatically
+have the new avatar on them.
 
 
 ## Installation
@@ -307,7 +308,7 @@ This module is distributed under the BSD license. Refer to [LICENSE](/blob/maste
 
 ## Acknowledgement
 
-This module is heavily inspired by the image filter module with
+This module is heavily inspired by the nginx image filter module with
 insights from
 ["Emiller’s Guide To Nginx Module Development"](https://www.evanmiller.org/nginx-modules-guide.html)
 and the
