@@ -81,30 +81,16 @@ Enable the jpeg filter module.
 This directive is turned off by default.
 
 
-### jpeg_filter_max_width
+### jpeg_filter_max_pixel
 
-__Syntax:__ `jpeg_filter_max_width width`
-
-__Default:__ `0`
-
-__Context:__ `http, server, location`
-
-Maximum width of images to operate on. If the image has a width same or larger than `width`, the jpeg filter will return a  "415 Unsupported Media Type".
-Set the maximum width to 0 in order to always apply the jpeg filter. Set [jpeg_filter_graceful](#jpeg_filter_graceful) to `on` to deliver the image unchanged.
-
-This directive is set to 0 by default.
-
-
-### jpeg_filter_max_height
-
-__Syntax:__ `jpeg_filter_max_height height`
+__Syntax:__ `jpeg_filter_max_pixel pixel`
 
 __Default:__ `0`
 
 __Context:__ `http, server, location`
 
-Maximum height of images to operate on. If the image has a height same or larger than `height`, the jpeg filter will return a "415 Unsupported Media Type".
-Set the maximum height to 0 in order to always apply the jpeg filter. Set [jpeg_filter_graceful](#jpeg_filter_graceful) to `on` to deliver the image unchanged.
+Maximum number of pixel in image to operate on. If the image has more pixel (width * height) than `pixel`, the jpeg filter will return a  "415 Unsupported Media Type".
+Set [jpeg_filter_graceful](#jpeg_filter_graceful) to `on` to deliver the image unchanged. Set the maximum pixel to 0 in order ignore the image dimensions.
 
 This directive is set to 0 by default.
 
@@ -209,6 +195,8 @@ Apply an effect to the image.
 
 This directive is not set by default.
 
+Both parameter can contain variables.
+
 
 ### jpeg_filter_dropon_align
 
@@ -223,6 +211,8 @@ Align the dropon on the image. Use the directive [jpeg_filter_dropon_offset](#jp
 This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in order to have an effect on the dropon.
 
 This directive will apply the dropon in the center of the image by default.
+
+Both parameter can contain variables.
 
 
 ### jpeg_filter_dropon_offset
@@ -239,6 +229,8 @@ Use a negative value to move the dropon up or left and a positive value to move 
 This directive must be set before [jpeg_filter_dropon](#jpeg_filter_dropon) in order to have an effect on the dropon.
 
 This directive will not apply an offset by default.
+
+Both parameter can contain variables.
 
 
 ### jpeg_filter_dropon
@@ -261,8 +253,8 @@ This directive is not set by default.
 ### Notes
 
 The directives `jpeg_filter_effect`, `jpeg_filter_dropon_align`, `jpeg_filter_dropon_offset`, and `jpeg_filter_dropon` are applied in the order they
-appear in the nginx config file, i.e. it makes a difference if you apply first an effect then add a dropon or vice versa. In the former the dropon will be
-unaffected by the effect and in the latter the effect will be also applied on the dropon.
+appear in the nginx config file, i.e. it makes a difference if you apply first an effect and then add a dropon or vice versa. In the former case the dropon will be
+unaffected by the effect and in the latter case the effect will be also applied on the dropon.
 
 
 ## License

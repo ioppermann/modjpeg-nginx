@@ -20,12 +20,8 @@
  * Default: off
  * Context: location
  *
- * jpeg_filter_max_width width
- * Default: 0 (not limited)
- * Context: http, server, location
- *
- * jpeg_filter_max_height height
- * Default: 0 (not limited)
+ * jpeg_filter_max_pixel pixel
+ * Default: 0
  * Context: http, server, location
  *
  * jpeg_filter_optimize on|off
@@ -108,8 +104,7 @@ typedef struct {
 } ngx_http_jpeg_filter_element_t;
 
 typedef struct {
-	ngx_uint_t	max_width;          /* Max. allowed image width */
-	ngx_uint_t	max_height;         /* Max. allowed image height */
+	ngx_uint_t	max_pixel;          /* Max. allowed pixel in image */
 
 	ngx_flag_t	enable;             /* Whether the module is enabled */
 	ngx_flag_t	optimize;           /* Whether to optimize the Huffman tables in the resulting JPEG */
@@ -172,18 +167,11 @@ static ngx_command_t ngx_http_jpeg_filter_commands[] = {
 	  offsetof(ngx_http_jpeg_filter_conf_t, enable),
 	  NULL },
 
-	{ ngx_string("jpeg_filter_max_width"),
+	{ ngx_string("jpeg_filter_max_pixel"),
 	  NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
 	  ngx_conf_set_num_slot,
 	  NGX_HTTP_LOC_CONF_OFFSET,
-	  offsetof(ngx_http_jpeg_filter_conf_t, max_width),
-	  NULL },
-
-	{ ngx_string("jpeg_filter_max_height"),
-	  NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-	  ngx_conf_set_num_slot,
-	  NGX_HTTP_LOC_CONF_OFFSET,
-	  offsetof(ngx_http_jpeg_filter_conf_t, max_height),
+	  offsetof(ngx_http_jpeg_filter_conf_t, max_pixel),
 	  NULL },
 
 	{ ngx_string("jpeg_filter_optimize"),
@@ -667,14 +655,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	mj_jpeg_t m;
 	mj_init_jpeg(&m);
 
-	if(mj_read_jpeg_from_buffer(&m, (char *)ctx->in_image, ctx->length) != MJ_OK) {
-		return NGX_ERROR;
-	}
-
-	if(
-		(conf->max_width != 0 && (ngx_uint_t)m.width > conf->max_width) ||
-		(conf->max_height != 0 && (ngx_uint_t)m.height > conf->max_height)
-	) {
+	if(mj_read_jpeg_from_buffer(&m, (char *)ctx->in_image, ctx->length, conf->max_pixel) != MJ_OK) {
 		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
@@ -1100,13 +1081,12 @@ static void *ngx_http_jpeg_filter_create_conf(ngx_conf_t *cf) {
 		return NGX_CONF_ERROR;
 	}
 
+	conf->max_pixel = NGX_CONF_UNSET_UINT;
+
 	conf->enable = NGX_CONF_UNSET;
 	conf->optimize = NGX_CONF_UNSET;
 	conf->progressive = NGX_CONF_UNSET;
 	conf->graceful = NGX_CONF_UNSET;
-
-	conf->max_width = NGX_CONF_UNSET_UINT;
-	conf->max_height = NGX_CONF_UNSET_UINT;
 
 	conf->buffer_size = NGX_CONF_UNSET_SIZE;
 
@@ -1117,13 +1097,12 @@ static char *ngx_http_jpeg_filter_merge_conf(ngx_conf_t *cf, void *parent, void 
 	ngx_http_jpeg_filter_conf_t *prev = parent;
 	ngx_http_jpeg_filter_conf_t *conf = child;
 
+	ngx_conf_merge_uint_value(conf->max_pixel, prev->max_pixel, 0);
+
 	ngx_conf_merge_value(conf->enable, prev->enable, 0);
 	ngx_conf_merge_value(conf->optimize, prev->optimize, 0);
 	ngx_conf_merge_value(conf->progressive, prev->progressive, 0);
 	ngx_conf_merge_value(conf->graceful, prev->graceful, 0);
-
-	ngx_conf_merge_uint_value(conf->max_width, prev->max_width, 0);
-	ngx_conf_merge_uint_value(conf->max_height, prev->max_height, 0);
 
 	ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size, NGX_HTTP_JPEG_FILTER_BUFFER_SIZE);
 
