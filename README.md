@@ -160,7 +160,7 @@ http {
    	   jpeg_filter on;
 
            # limit image sizes to 9 megapixel
-          jpeg_filter_max_pixel 9000000;
+           jpeg_filter_max_pixel 9000000;
 
            # limit image file size to 5 megabytes
            jpeg_filter_buffer 5M;
