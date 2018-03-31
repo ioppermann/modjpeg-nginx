@@ -861,7 +861,8 @@ static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_h
 			return defval;
 		}
 
-		n = ngx_atoi(val.data, val.len);
+		// Subtract 1 from the length because we compiled the complex value with 'zero=1'
+		n = ngx_atoi(val.data, val.len - 1);
 	}
 
 	return n;
