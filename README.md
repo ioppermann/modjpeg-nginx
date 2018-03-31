@@ -70,29 +70,117 @@ This module has been tested with the following versions of nginx:
    ...
 
    location /gallery {
-   	# enable jpeg filter module
-   	jpeg_filter on;
+      # enable jpeg filter module
+      jpeg_filter on;
 
-   	# limit image sizes to 9 megapixel
-   	jpeg_filter_max_pixel 9000000;
+      # limit image sizes to 9 megapixel
+      jpeg_filter_max_pixel 9000000;
 
-   	# limit image file size to 5 megabytes
-   	jpeg_filter_buffer 5M;
+      # limit image file size to 5 megabytes
+      jpeg_filter_buffer 5M;
 
-   	# deliver the images unmodified if one of the limits apply
-   	jpeg_filter_graceful on;
+      # deliver the images unmodified if one of the limits apply
+      jpeg_filter_graceful on;
 
-   	# pixelate the image
-   	jpeg_filter_effect pixelate;
+      # pixelate the image
+      jpeg_filter_effect pixelate;
 
-   	# add a masked logo in the bottom right corner
-   	# with a distance of 10 pixel from the border
-   	jpeg_filter_dropon_align bottom right;
-   	jpeg_filter_dropon_offset -10 -10;
-   	jpeg_filter_dropon /path/to/logo.jpg /path/to/mask.jpg
+      # add a masked logo in the bottom right corner
+      # with a distance of 10 pixel from the border
+      jpeg_filter_dropon_align bottom right;
+      jpeg_filter_dropon_offset -10 -10;
+      jpeg_filter_dropon_jpeg_file /path/to/logo.jpg /path/to/mask.jpg
    }
 
    ...
+```
+
+Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lua-nginx-module)
+
+```nginx
+   ...
+
+   location /gallery {
+      set_by_lua_block $valign {
+         local a = { 'top', 'center', 'bottom' }
+         return a[math.random(#a)]
+      }
+
+      set_by_lua_block $halign {
+         local a = { 'left', 'center', 'right' }
+         return a[math.random(#a)]
+      }
+
+      # enable jpeg filter module
+      jpeg_filter on;
+
+      # limit image sizes to 9 megapixel
+      jpeg_filter_max_pixel 9000000;
+
+      # limit image file size to 5 megabytes
+      jpeg_filter_buffer 5M;
+
+      # deliver the images unmodified if one of the limits apply
+      jpeg_filter_graceful on;
+
+      # pixelate the image
+      jpeg_filter_effect pixelate;
+
+      # add a masked logo in random positions
+      jpeg_filter_dropon_align $valign $halign;
+      jpeg_filter_dropon_jpeg_file /path/to/logo.jpg /path/to/mask.jpg
+   }
+
+   ...
+```
+
+Or generate a logo with [Lua-GD](http://ittner.github.io/lua-gd/)
+
+```nginx
+http {
+   ...
+   lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
+   ...
+   server {
+      ...
+      location /gallery {
+      	   set_by_lua_block $logobitstream {
+              local gd = require "gd"
+
+              local im = gd.create(210, 70)
+              local white = im:colorAllocate(255, 255, 255)
+              local black = im:colorAllocate(0, 0, 0)
+              im:filledRectangle(0, 0, 140, 80, white)
+              im:string(gd.FONT_LARGE, 10, 10, "Hello modjpeg", black)
+              im:string(gd.FONT_LARGE, 10, 40, os.date("%c"), black);
+              return im:jpegStr(85)
+      	   }
+
+   	   # enable jpeg filter module
+   	   jpeg_filter on;
+
+           # limit image sizes to 9 megapixel
+          jpeg_filter_max_pixel 9000000;
+
+           # limit image file size to 5 megabytes
+           jpeg_filter_buffer 5M;
+
+           # deliver the images unmodified if one of the limits apply
+           jpeg_filter_graceful on;
+
+           # pixelate the image
+           jpeg_filter_effect pixelate;
+
+           # add a generated logo in the bottom right corner
+           # with a distance of 10 pixel from the border
+           jpeg_filter_dropon_align bottom right;
+           jpeg_filter_dropon_offset -10 -10;
+           jpeg_filter_dropon_jpeg_bitstream $logobitstream;
+      }
+      ...
+   }
+   ...
+}
 ```
 
 ## Directives
