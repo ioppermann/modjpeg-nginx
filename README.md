@@ -95,7 +95,7 @@ This module has been tested with the following versions of nginx:
    ...
 ```
 
-Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lua-nginx-module)
+Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lua-nginx-module):
 
 ```nginx
    ...
@@ -134,7 +134,7 @@ Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lu
    ...
 ```
 
-Or generate a logo with [Lua-GD](http://ittner.github.io/lua-gd/)
+Or generate a logo with [Lua-GD](http://ittner.github.io/lua-gd/):
 
 ```nginx
 http {
