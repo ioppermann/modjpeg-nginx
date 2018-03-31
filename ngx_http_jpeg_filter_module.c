@@ -657,7 +657,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	mj_jpeg_t m;
 	mj_init_jpeg(&m);
 
-	if(mj_read_jpeg_from_buffer(&m, (char *)ctx->in_image, ctx->length, conf->max_pixel) != MJ_OK) {
+	if(mj_read_jpeg_from_bitstream(&m, (char *)ctx->in_image, ctx->length, conf->max_pixel) != MJ_OK) {
 		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
@@ -779,7 +779,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON1) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
-					if(mj_read_dropon_from_jpeg(&d, (char *)val1.data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_jpeg_file(&d, (char *)val1.data, NULL, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\"", val1.data);
 					}
 				}
@@ -787,7 +787,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val2);
 
-					if(mj_read_dropon_from_jpeg(&d, (char *)val1.data, (char *)val2.data, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_jpeg_file(&d, (char *)val1.data, (char *)val2.data, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", val1.data, val2.data);
 					}
 				}
@@ -823,7 +823,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 	size_t len;
 
-	if(mj_write_jpeg_to_buffer(&m, (char **)&ctx->out_image, &len, options) != 0) {
+	if(mj_write_jpeg_to_bitstream(&m, (char **)&ctx->out_image, &len, options) != 0) {
 		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
@@ -1104,14 +1104,14 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 			if(cf->args->nelts == 2) {
 				/* Dropon without a mask */
-				if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+				if(mj_read_dropon_from_jpeg_file(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
 					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\"", value[1].data);
 					return NGX_CONF_ERROR;
 				}
 			}
 			else {
 				/* Dropon with a mask */
-				if(mj_read_dropon_from_jpeg(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
+				if(mj_read_dropon_from_jpeg_file(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
 					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
 					return NGX_CONF_ERROR;
 				}
