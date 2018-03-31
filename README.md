@@ -107,7 +107,8 @@ This module has been tested with the following versions of nginx:
 - [jpeg_filter_effect](#jpeg_filter_effect)
 - [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
 - [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
-- [jpeg_filter_dropon](#jpeg_filter_dropon)
+- [jpeg_filter_dropon_jpeg_file](#jpeg_filter_dropon_jpeg_file)
+- [jpeg_filter_dropon_jpeg_bitstream](#jpeg_filter_dropon_jpeg_bitstream)
 - [Notes](#notes)
 
 
@@ -276,11 +277,11 @@ This directive will not apply an offset by default.
 All parameters can contain variables.
 
 
-### jpeg_filter_dropon
+### jpeg_filter_dropon_jpeg_file
 
-__Syntax:__ `jpeg_filter_dropon image`
+__Syntax:__ `jpeg_filter_dropon_jpeg_file image`
 
-__Syntax:__ `jpeg_filter_dropon image mask`
+__Syntax:__ `jpeg_filter_dropon_jpeg_file image mask`
 
 __Default:__ `-`
 
@@ -296,6 +297,27 @@ All parameters can contain variables.
 
 If none of the parameters contain variables, the dropon is loaded during loading of the configuration. If at least one parameter contains variables, the dropon
 will be loaded during processing of the request. After processing the request, the dropon will be unloaded.
+
+
+### jpeg_filter_dropon_jpeg_bitstream
+
+__Syntax:__ `jpeg_filter_dropon_jpeg_bitstream $image`
+
+__Syntax:__ `jpeg_filter_dropon_jpeg_bitstream $image $mask`
+
+__Default:__ `-`
+
+__Context:__ `location`
+
+Apply a dropon to the image. The dropon is given by a variable holding a JPEG image bitstream for `$image` and optionally a variable to a JPEG image bitstream for `$mask`.
+If no mask image is provided, the image will be applied without transcluency. If a mask image is provided, only the luminance component will be used. For the mask,
+black means fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
+
+This directive is not set by default.
+
+All parameters are expected to be variables.
+
+The dropon will always be loaded during processing of the request. After processing the request, the dropon will be unloaded.
 
 
 ### Notes
