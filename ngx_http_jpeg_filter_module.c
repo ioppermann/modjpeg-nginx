@@ -902,7 +902,7 @@ static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_h
 			return defval;
 		}
 
-		// Subtract 1 from the length because we compiled the complex value with 'zero=1'
+		/* Subtract 1 from the length because we compiled the complex value with 'zero=1' */
 		n = ngx_atoi(val.data, val.len - 1);
 	}
 
@@ -1133,7 +1133,7 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 			}
 		}
 
-		// Check if there are any variables in the values
+		/* Check if there are any variables in the values */
 		if(has_variables == 0) {
 			fe->dropon = (mj_dropon_t *)ngx_palloc(cf->pool, sizeof(mj_dropon_t));
 			if(fe->dropon == NULL) {
