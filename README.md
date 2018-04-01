@@ -89,13 +89,13 @@ This module has been tested with the following versions of nginx:
       # with a distance of 10 pixel from the border
       jpeg_filter_dropon_align bottom right;
       jpeg_filter_dropon_offset -10 -10;
-      jpeg_filter_dropon_file /path/to/logo.jpg /path/to/mask.jpg
+      jpeg_filter_dropon_file /path/to/logo.jpg /path/to/mask.jpg;
    }
 
    ...
 ```
 
-Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lua-nginx-module):
+Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lua-nginx-module) and a PNG logo:
 
 ```nginx
    ...
@@ -126,9 +126,9 @@ Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lu
       # pixelate the image
       jpeg_filter_effect pixelate;
 
-      # add a masked logo in random positions
+      # add a logo in a random position
       jpeg_filter_dropon_align $valign $halign;
-      jpeg_filter_dropon_file /path/to/logo.jpg /path/to/mask.jpg
+      jpeg_filter_dropon_file /path/to/logo.png;
    }
 
    ...
@@ -144,7 +144,7 @@ http {
    server {
       ...
       location /gallery {
-      	   set_by_lua_block $logobitstream {
+      	   set_by_lua_block $logobytestream {
               local gd = require "gd"
 
               local im = gd.create(210, 70)
@@ -175,7 +175,7 @@ http {
            # with a distance of 10 pixel from the border
            jpeg_filter_dropon_align bottom right;
            jpeg_filter_dropon_offset -10 -10;
-           jpeg_filter_dropon_memory $logobitstream;
+           jpeg_filter_dropon_memory $logobytestream;
       }
       ...
    }
