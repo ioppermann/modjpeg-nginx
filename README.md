@@ -89,7 +89,7 @@ This module has been tested with the following versions of nginx:
       # with a distance of 10 pixel from the border
       jpeg_filter_dropon_align bottom right;
       jpeg_filter_dropon_offset -10 -10;
-      jpeg_filter_dropon_jpeg_file /path/to/logo.jpg /path/to/mask.jpg
+      jpeg_filter_dropon_file /path/to/logo.jpg /path/to/mask.jpg
    }
 
    ...
@@ -128,7 +128,7 @@ Or use it with [OpenResty's ngx_http_lua_module](https://github.com/openresty/lu
 
       # add a masked logo in random positions
       jpeg_filter_dropon_align $valign $halign;
-      jpeg_filter_dropon_jpeg_file /path/to/logo.jpg /path/to/mask.jpg
+      jpeg_filter_dropon_file /path/to/logo.jpg /path/to/mask.jpg
    }
 
    ...
@@ -175,7 +175,7 @@ http {
            # with a distance of 10 pixel from the border
            jpeg_filter_dropon_align bottom right;
            jpeg_filter_dropon_offset -10 -10;
-           jpeg_filter_dropon_jpeg_bitstream $logobitstream;
+           jpeg_filter_dropon_memory $logobitstream;
       }
       ...
    }
@@ -195,8 +195,8 @@ http {
 - [jpeg_filter_effect](#jpeg_filter_effect)
 - [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
 - [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
-- [jpeg_filter_dropon_jpeg_file](#jpeg_filter_dropon_jpeg_file)
-- [jpeg_filter_dropon_jpeg_bitstream](#jpeg_filter_dropon_jpeg_bitstream)
+- [jpeg_filter_dropon_file](#jpeg_filter_dropon_file)
+- [jpeg_filter_dropon_memory](#jpeg_filter_dropon_memory)
 - [Notes](#notes)
 
 
@@ -365,19 +365,20 @@ This directive will not apply an offset by default.
 All parameters can contain variables.
 
 
-### jpeg_filter_dropon_jpeg_file
+### jpeg_filter_dropon_file
 
-__Syntax:__ `jpeg_filter_dropon_jpeg_file image`
+__Syntax:__ `jpeg_filter_dropon_file image`
 
-__Syntax:__ `jpeg_filter_dropon_jpeg_file image mask`
+__Syntax:__ `jpeg_filter_dropon_file image mask`
 
 __Default:__ `-`
 
 __Context:__ `location`
 
-Apply a dropon to the image. The dropon is given by a path to a JPEG image for `image` and optionally a path to a JPEG image for `mask`. If no mask image is
+Apply a dropon to the image. The dropon is given by a path to a JPEG or PNG image for `image` and optionally a path to a JPEG image for `mask`. If no mask image is
 provided, the image will be applied without transcluency. If a mask image is provided, only the luminance component will be used. For the mask, black means
-fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
+fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly. If `image` is a path to a PNG, the
+mask will be ignored.
 
 This directive is not set by default.
 
@@ -386,26 +387,31 @@ All parameters can contain variables.
 If none of the parameters contain variables, the dropon is loaded during loading of the configuration. If at least one parameter contains variables, the dropon
 will be loaded during processing of the request. After processing the request, the dropon will be unloaded.
 
+PNG files as dropon are supported only if libmodjpeg has been compiled with PNG support.
 
-### jpeg_filter_dropon_jpeg_bitstream
 
-__Syntax:__ `jpeg_filter_dropon_jpeg_bitstream $image`
+### jpeg_filter_dropon_memory
 
-__Syntax:__ `jpeg_filter_dropon_jpeg_bitstream $image $mask`
+__Syntax:__ `jpeg_filter_dropon_memory $image`
+
+__Syntax:__ `jpeg_filter_dropon_memory $image $mask`
 
 __Default:__ `-`
 
 __Context:__ `location`
 
-Apply a dropon to the image. The dropon is given by a variable holding a JPEG image bitstream for `$image` and optionally a variable to a JPEG image bitstream for `$mask`.
+Apply a dropon to the image. The dropon is given by a variable holding a JPEG or PNG image bytestream for `$image` and optionally a variable to a JPEG image bytestream for `$mask`.
 If no mask image is provided, the image will be applied without transcluency. If a mask image is provided, only the luminance component will be used. For the mask,
-black means fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly.
+black means fully transcluent and white means fully opaque. Any values inbetween will blend the underlying image and the dropon accordingly. If `$image` is a PNG, the
+mask will be ignored.
 
 This directive is not set by default.
 
 All parameters are expected to be variables.
 
 The dropon will always be loaded during processing of the request. After processing the request, the dropon will be unloaded.
+
+PNG bytestreams as dropon are supported only if libmodjpeg has been compiled with PNG support.
 
 
 ### Notes

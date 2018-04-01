@@ -58,13 +58,13 @@
  * Default: 0 0
  * Context: location
  *
- * jpeg_filter_dropon_jpeg_file image
- * jpeg_filter_dropon_jpeg_file image mask
+ * jpeg_filter_dropon_file image
+ * jpeg_filter_dropon_file image mask
  * Default: -
  * Context: location
  *
- * jpeg_filter_dropon_jpeg_bitstream image
- * jpeg_filter_dropon_jpeg_bitstream image mask
+ * jpeg_filter_dropon_memory image
+ * jpeg_filter_dropon_memory image mask
  * Default: -
  * Context: location
  *
@@ -97,10 +97,10 @@
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_ALIGN             3
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_OFFSET            4
 #define NGX_HTTP_JPEG_FILTER_TYPE_DROPON                   5
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE1         6
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE2         7
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM1    8
-#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM2    9
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE1             6
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE2             7
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY1           8
+#define NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY2           9
 
 #define NGX_HTTP_JPEG_FILTER_BUFFER_SIZE          2 * 1024 * 1024
 
@@ -239,14 +239,14 @@ static ngx_command_t ngx_http_jpeg_filter_commands[] = {
 	  0,
 	  NULL },
 
-	{ ngx_string("jpeg_filter_dropon_jpeg_file"),
+	{ ngx_string("jpeg_filter_dropon_file"),
 	  NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
 	  ngx_conf_jpeg_filter_dropon,
 	  NGX_HTTP_LOC_CONF_OFFSET,
 	  0,
 	  NULL },
 
-	{ ngx_string("jpeg_filter_dropon_jpeg_bitstream"),
+	{ ngx_string("jpeg_filter_dropon_memory"),
 	  NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
 	  ngx_conf_jpeg_filter_dropon,
 	  NGX_HTTP_LOC_CONF_OFFSET,
@@ -671,7 +671,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	mj_jpeg_t m;
 	mj_init_jpeg(&m);
 
-	if(mj_read_jpeg_from_bitstream(&m, (char *)ctx->in_image, ctx->length, conf->max_pixel) != MJ_OK) {
+	if(mj_read_jpeg_from_memory(&m, ctx->in_image, ctx->length, conf->max_pixel) != MJ_OK) {
 		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
@@ -784,16 +784,16 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				mj_compose(&m, felts[i].dropon, align, offset_x, offset_y);
 
 				break;
-			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE1:
-			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE2:
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE1:
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE2:
 				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dynamic dropon");
 
 				mj_init_dropon(&d);
 
-				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE1) {
+				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE1) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
-					if(mj_read_dropon_from_jpeg_file(&d, (char *)val1.data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_file(&d, (char *)val1.data, NULL, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\"", val1.data);
 					}
 				}
@@ -801,7 +801,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val2);
 
-					if(mj_read_dropon_from_jpeg_file(&d, (char *)val1.data, (char *)val2.data, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_file(&d, (char *)val1.data, (char *)val2.data, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", val1.data, val2.data);
 					}
 				}
@@ -811,16 +811,16 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 				mj_free_dropon(&d);
 
 				break;
-			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM1:
-			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM2:
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY1:
+			case NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY2:
 				ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "jpeg_filter: applying dynamic dropon");
 
 				mj_init_dropon(&d);
 
-				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM1) {
+				if(felts[i].type == NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY1) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 
-					if(mj_read_dropon_from_jpeg_bitstream(&d, (char *)val1.data, val1.len, NULL, 0, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_memory(&d, val1.data, val1.len, NULL, 0, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the bitstream");
 					}
 				}
@@ -828,7 +828,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv1, &val1);
 					ngx_http_jpeg_filter_get_string_value(r, &felts[i].cv2, &val2);
 
-					if(mj_read_dropon_from_jpeg_bitstream(&d, (char *)val1.data, val1.len, (char *)val2.data, val2.len, MJ_BLEND_FULL) != MJ_OK) {
+					if(mj_read_dropon_from_memory(&d, val1.data, val1.len, val2.data, val2.len, MJ_BLEND_FULL) != MJ_OK) {
 						ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "jpeg_filter: dropon could not load the bitstream");
 					}
 				}
@@ -864,7 +864,7 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 
 	size_t len;
 
-	if(mj_write_jpeg_to_bitstream(&m, (char **)&ctx->out_image, &len, options) != 0) {
+	if(mj_write_jpeg_to_memory(&m, &ctx->out_image, &len, options) != 0) {
 		mj_free_jpeg(&m);
 		return NGX_ERROR;
 	}
@@ -1092,7 +1092,7 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 			return NGX_CONF_ERROR;
 		}
 	}
-	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_jpeg_file") == 0) {
+	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_file") == 0) {
 		fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON;
 
 		ngx_int_t has_variables = 0;
@@ -1145,14 +1145,14 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 			if(cf->args->nelts == 2) {
 				/* Dropon without a mask */
-				if(mj_read_dropon_from_jpeg_file(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
+				if(mj_read_dropon_from_file(fe->dropon, (char *)value[1].data, NULL, MJ_BLEND_FULL) != MJ_OK) {
 					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\"", value[1].data);
 					return NGX_CONF_ERROR;
 				}
 			}
 			else {
 				/* Dropon with a mask */
-				if(mj_read_dropon_from_jpeg_file(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
+				if(mj_read_dropon_from_file(fe->dropon, (char *)value[1].data, (char *)value[2].data, MJ_BLEND_FULL) != MJ_OK) {
 					ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "jpeg_filter: dropon could not load the file \"%s\" or \"%s\"", value[1].data, value[2].data);
 					return NGX_CONF_ERROR;
 				}
@@ -1172,16 +1172,16 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		}
 		else {
 			if(cf->args->nelts == 2) {
-				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE1;
+				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE1;
 			}
 			else {
-				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGFILE2;
+				fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_FILE2;
 			}
 
 			fe->dropon = NULL;
 		}
 	}
-	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_jpeg_bitstream") == 0) {
+	else if(ngx_strcmp(value[0].data, "jpeg_filter_dropon_memory") == 0) {
 		/* Dropon */
 		ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
@@ -1211,10 +1211,10 @@ static char *ngx_conf_jpeg_filter_dropon(ngx_conf_t *cf, ngx_command_t *cmd, voi
 		}
 
 		if(cf->args->nelts == 2) {
-			fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM1;
+			fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY1;
 		}
 		else {
-			fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_JPEGBITSTREAM2;
+			fe->type = NGX_HTTP_JPEG_FILTER_TYPE_DROPON_MEMORY2;
 		}
 
 		fe->dropon = NULL;
