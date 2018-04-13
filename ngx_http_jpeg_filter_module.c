@@ -458,7 +458,7 @@ static ngx_int_t ngx_http_jpeg_body_filter(ngx_http_request_t *r, ngx_chain_t *i
 			return ngx_http_filter_finalize_request(r, &ngx_http_jpeg_filter_module, NGX_HTTP_INTERNAL_SERVER_ERROR);
 		}
 
-		/* Fall through (rc == NGX_OK) */
+		/* fall through */
 
 	case NGX_HTTP_JPEG_FILTER_PHASE_PROCESS:
 		/* Now that we have all the bytes from the image, we can go on an process it */
