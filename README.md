@@ -50,7 +50,7 @@ cd nginx-1.15.1
 # ... configure as dynamic module (as of nginx 1.9.11)
 ./configure --add_dynamic_module=../modjpeg-nginx
 
-# If the libmodjpeg library is not found, add e.g. '--with-ld-opts=-L/usr/local/lib' to
+# If the libmodjpeg library is not found, add e.g. '--with-ld-opt=-L/usr/local/lib' to
 # the configure options if it was installed to /usr/local/lib
 
 # You may want to use the other './configure' options that are used
