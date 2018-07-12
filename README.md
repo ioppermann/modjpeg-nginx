@@ -44,13 +44,28 @@ wget 'http://nginx.org/download/nginx-1.15.1.tar.gz'
 tar -xvzf nginx-1.15.1.tar.gz
 cd nginx-1.15.1
 
+# Configure as static module, or ...
 ./configure --add_module=../modjpeg-nginx
+
+# ... configure as dynamic module (as of nginx 1.9.11)
+./configure --add_dynamic_module=../modjpeg-nginx
+
+# If the libmodjpeg library is not found, add e.g. '--with-ld-opts=-L/usr/local/lib' to
+# the configure options if it was installed to /usr/local/lib
 
 # You may want to use the other './configure' options that are used
 # in your current nginx build. Check the output of 'nginx -V'.
 
 make
 make install
+```
+
+If you configured modjpeg-nginx as dynamic module, you have to load the module in the beginning of the config
+
+```nginx
+...
+load_module modules/ngx_http_jpeg_filter_module.so;
+...
 ```
 
 
@@ -63,7 +78,7 @@ This module has been tested with the following versions of nginx:
 - 1.13.10
 - 1.12.2
 - 1.10.3
-- 1.8.1
+- 1.8.1 (only as static module)
 
 
 ## Synopsis
