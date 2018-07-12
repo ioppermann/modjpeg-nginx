@@ -40,9 +40,9 @@ cd ..
 git clone https://github.com/ioppermann/modjpeg-nginx.git
 
 # Download and install nginx
-wget 'http://nginx.org/download/nginx-1.13.10.tar.gz'
-tar -xvzf nginx-1.13.10.tar.gz
-cd nginx-1.13.10
+wget 'http://nginx.org/download/nginx-1.15.1.tar.gz'
+tar -xvzf nginx-1.15.1.tar.gz
+cd nginx-1.15.1
 
 ./configure --add_module=../modjpeg-nginx
 
@@ -58,6 +58,8 @@ make install
 
 This module has been tested with the following versions of nginx:
 
+- 1.15.1
+- 1.14.0
 - 1.13.10
 - 1.12.2
 - 1.10.3
