@@ -6,6 +6,29 @@ Nginx filter module for adding overlays on JPEGs on-the-fly with [libmodjpeg](ht
 > take place where the overlayed image is applied. All modifications happen in the DCT domain, thus the JPEG is decoded and
 > encoded losslessly.
 
+- [Typical Uses](#typical-uses)
+- [Try it out](#try-it-out)
+- [Installation](#installation)
+- [Compatibility](#compatibility)
+- [Synopsis](#synopsis)
+- [Directives](#directives)
+  - [jpeg_filter](#jpeg_filter)
+  - [jpeg_filter_max_pixel](#jpeg_filter_max_pixel)
+  - [jpeg_filter_buffer](#jpeg_filter_buffer)
+  - [jpeg_filter_optimize](#jpeg_filter_optimize)
+  - [jpeg_filter_progressive](#jpeg_filter_progressive)
+  - [jpeg_filter_arithmetric](#jpeg_filter_arithmetric)
+  - [jpeg_filter_graceful](#jpeg_filter_graceful)
+  - [jpeg_filter_effect](#jpeg_filter_effect)
+  - [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
+  - [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
+  - [jpeg_filter_dropon_file](#jpeg_filter_dropon_file)
+  - [jpeg_filter_dropon_memory](#jpeg_filter_dropon_memory)
+  - [Notes](#notes)
+- [License](#license)
+- [Acknowledgement](#acknowledgement)
+
+
 ## Typical Uses
 
 This filter module can add overlays (e.g. a logo, visual watermark) on JPEGs when they are requested.
@@ -16,6 +39,52 @@ A few ideas:
 - You have an online shop with thousands of product images. With just configuring nginx you can add your logo to all of the product images. You don't have to process all product images.
 - You have a paid service. Add a watermark to all images if the user is not subscribed. If the user is subscribed, don't apply the watermark or put just a small logo on the images without touching the original images.
 - On your website, registered users can upload images. Add the avatar of the user to the image who uploaded the image without processing it after the upload. If the user changes her avatar, all her images will automatically have the new avatar on them.
+
+
+## Try it out
+
+In order to try out this filter module, pull the docker image
+
+```bash
+docker pull ioppermann/modjpeg-nginx:latest
+```
+
+The docker container exposes TCP port 80 and expects a directory with images mounted on `/images`, e.g.
+
+```bash
+docker run -it --rm --name=modjpeg-nginx \
+   --mount type=bind,src=$PWD/images,dst=/images,readonly \
+   -p 8080:80 \
+   ioppermann/modjpeg-nginx:latest
+```
+
+Now you can browse to [http://localhost:8080/](http://localhost:8080/) and click on the listed images. The modjpeg logo will be applied in the top left corner. By default
+only images that are smaller than 10MB are processed by the filter. Stop the container by pressing `Ctrl-c`.
+
+The filter can be controlled by these environment variables:
+
+Name|Default|Description
+------------------------
+MJ_GRACEFUL|on|[jpeg_filter_graceful](#jpeg_filter_graceful)
+MJ_BUFFER|10M|[jpeg_filter_buffer](#jpeg_filter_buffer)
+MJ_MAX_PIXEL|0|[jpeg_filter_max_pixel](#jpeg_filter_max_pixel)
+MJ_DROPON_ALIGN|"top left"|[jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
+MJ_DROPON_OFFSET|"0 0"|[jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
+MJ_DROPON_FILE|"/usr/local/nginx/conf/dropon.png"|[jpeg_filter_dropon_file](#jpeg_filter_dropon_file)
+
+The following example will allow images with up to 150 megapixel (`MJ_MAX_PIXEL`) and 100MB in file size (`MJ_BUFFER`). The logo will be placed in bottom right corner (`MJ_DROPON_ALIGN`)
+with an offset of -15px horizontally and vertically (`MJ_DROPON_OFFSET`).
+
+```bash
+docker run -it --rm --name=modjpeg-nginx \
+   --mount type=bind,src=$PWD/images,dst=/images,readonly \
+   -p 8080:80 \
+   -e MJ_MAX_PIXEL=150000000 \
+   -e MJ_BUFFER=100M \
+   -e MJ_DROPON_ALIGN="bottom right" \
+   -e MJ_DROPON_OFFSET="-15 -15"
+   ioppermann/modjpeg-nginx:latest
+```
 
 
 ## Installation
@@ -73,7 +142,7 @@ load_module modules/ngx_http_jpeg_filter_module.so;
 
 This module has been tested with the following versions of nginx:
 
-- 1.15.1
+- 1.15.3
 - 1.14.0
 - 1.13.10
 - 1.12.2
