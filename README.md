@@ -65,12 +65,12 @@ The filter can be controlled by these environment variables:
 
 |Name|Default|Description|
 |----|-------|-----------|
-|MJ_GRACEFUL|on|[jpeg_filter_graceful](#jpeg_filter_graceful)|
-|MJ_BUFFER|10M|[jpeg_filter_buffer](#jpeg_filter_buffer)|
-|MJ_MAX_PIXEL|0|[jpeg_filter_max_pixel](#jpeg_filter_max_pixel)|
-|MJ_DROPON_ALIGN|"top left"|[jpeg_filter_dropon_align](#jpeg_filter_dropon_align)|
-|MJ_DROPON_OFFSET|"0 0"|[jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)|
-|MJ_DROPON_FILE|"/usr/local/nginx/conf/dropon.png"|[jpeg_filter_dropon_file](#jpeg_filter_dropon_file)|
+|MJ_GRACEFUL|on|See [jpeg_filter_graceful](#jpeg_filter_graceful)|
+|MJ_BUFFER|10M|See [jpeg_filter_buffer](#jpeg_filter_buffer)|
+|MJ_MAX_PIXEL|0|See [jpeg_filter_max_pixel](#jpeg_filter_max_pixel)|
+|MJ_DROPON_ALIGN|"top left"|See [jpeg_filter_dropon_align](#jpeg_filter_dropon_align)|
+|MJ_DROPON_OFFSET|"0 0"|See [jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)|
+|MJ_DROPON_FILE|"/usr/local/nginx/conf/dropon.png"|See [jpeg_filter_dropon_file](#jpeg_filter_dropon_file)|
 
 The following example will allow images with up to 150 megapixel (`MJ_MAX_PIXEL`) and 100MB in file size (`MJ_BUFFER`). The logo will be placed in bottom right corner (`MJ_DROPON_ALIGN`)
 with an offset of -15px horizontally and vertically (`MJ_DROPON_OFFSET`).
@@ -82,7 +82,17 @@ docker run -it --rm --name=modjpeg-nginx \
    -e MJ_MAX_PIXEL=150000000 \
    -e MJ_BUFFER=100M \
    -e MJ_DROPON_ALIGN="bottom right" \
-   -e MJ_DROPON_OFFSET="-15 -15"
+   -e MJ_DROPON_OFFSET="-15 -15" \
+   ioppermann/modjpeg-nginx:latest
+```
+
+In order to change the logo, you can mount an additional volume or put it into the directory you already mount, e.g.
+
+```bash
+docker run -it --rm --name=modjpeg-nginx \
+   --mount type=bind,src=$PWD/images,dst=/images,readonly \
+   -p 8080:80 \
+   -e MJ_DROPON_FILE="/images/logo.png" \
    ioppermann/modjpeg-nginx:latest
 ```
 
