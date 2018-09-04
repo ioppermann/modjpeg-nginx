@@ -63,14 +63,14 @@ only images that are smaller than 10MB are processed by the filter. Stop the con
 
 The filter can be controlled by these environment variables:
 
-Name|Default|Description
-------------------------
-MJ_GRACEFUL|on|[jpeg_filter_graceful](#jpeg_filter_graceful)
-MJ_BUFFER|10M|[jpeg_filter_buffer](#jpeg_filter_buffer)
-MJ_MAX_PIXEL|0|[jpeg_filter_max_pixel](#jpeg_filter_max_pixel)
-MJ_DROPON_ALIGN|"top left"|[jpeg_filter_dropon_align](#jpeg_filter_dropon_align)
-MJ_DROPON_OFFSET|"0 0"|[jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)
-MJ_DROPON_FILE|"/usr/local/nginx/conf/dropon.png"|[jpeg_filter_dropon_file](#jpeg_filter_dropon_file)
+|Name|Default|Description|
+|----|-------|-----------|
+|MJ_GRACEFUL|on|[jpeg_filter_graceful](#jpeg_filter_graceful)|
+|MJ_BUFFER|10M|[jpeg_filter_buffer](#jpeg_filter_buffer)|
+|MJ_MAX_PIXEL|0|[jpeg_filter_max_pixel](#jpeg_filter_max_pixel)|
+|MJ_DROPON_ALIGN|"top left"|[jpeg_filter_dropon_align](#jpeg_filter_dropon_align)|
+|MJ_DROPON_OFFSET|"0 0"|[jpeg_filter_dropon_offset](#jpeg_filter_dropon_offset)|
+|MJ_DROPON_FILE|"/usr/local/nginx/conf/dropon.png"|[jpeg_filter_dropon_file](#jpeg_filter_dropon_file)|
 
 The following example will allow images with up to 150 megapixel (`MJ_MAX_PIXEL`) and 100MB in file size (`MJ_BUFFER`). The logo will be placed in bottom right corner (`MJ_DROPON_ALIGN`)
 with an offset of -15px horizontally and vertically (`MJ_DROPON_OFFSET`).
