@@ -1,7 +1,7 @@
 FROM alpine:latest as nginx
 
 ENV \
-	NGINX_VERSION=1.15.0 \
+	NGINX_VERSION=1.15.3 \
 	LIBMODJPEG_VERSION=1.0.2
 
 RUN \
