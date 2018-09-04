@@ -889,13 +889,46 @@ static ngx_int_t ngx_http_jpeg_filter_process(ngx_http_request_t *r) {
 	return NGX_OK;
 }
 
+/* A function similar to ngx_atoi that can handle negative numbers */
+static ngx_int_t ngx_atois(u_char *line, size_t n) {
+	ngx_int_t  value, sign, cutoff, cutlim;
+
+	if(n == 0) {
+		return NGX_ERROR;
+	}
+
+	cutoff = NGX_MAX_INT_T_VALUE / 10;
+	cutlim = NGX_MAX_INT_T_VALUE % 10;
+
+	sign = 1;
+	if(*line == '-') {
+		sign = -1;
+		line++;
+		n--;
+	}
+
+	for(value = 0; n--; line++) {
+		if(*line < '0' || *line > '9') {
+			return NGX_ERROR;
+		}
+
+		if(value >= cutoff && (value > cutoff || *line - '0' > cutlim)) {
+			return NGX_ERROR;
+		}
+
+		value = value * 10 + (*line - '0');
+	}
+
+	return (sign * value);
+}
+
 /* Interpret a complex value as an int */
 static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_http_complex_value_t *cv, ngx_int_t defval) {
 	ngx_str_t val;
 	ngx_int_t n;
 
 	if(cv->lengths == NULL) {
-		n = ngx_atoi(cv->value.data, cv->value.len);
+		n = ngx_atois(cv->value.data, cv->value.len);
 	}
 	else {
 		if(ngx_http_complex_value(r, cv, &val) != NGX_OK) {
@@ -903,7 +936,7 @@ static ngx_int_t ngx_http_jpeg_filter_get_int_value(ngx_http_request_t *r, ngx_h
 		}
 
 		/* Subtract 1 from the length because we compiled the complex value with 'zero=1' */
-		n = ngx_atoi(val.data, val.len - 1);
+		n = ngx_atois(val.data, val.len - 1);
 	}
 
 	return n;
