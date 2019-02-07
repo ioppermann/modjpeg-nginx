@@ -99,6 +99,15 @@ docker run -it --rm --name=modjpeg-nginx \
 
 ## Installation
 
+### CentOS / RedHat 7 packages
+
+An easy way to use the module in CentOS or RedHat 7, is to use precompiled dynamic nginx module. It is built for nginx stable. The [repository](https://www.getpagespeed.com/redhat) includes latest stable nginx, the jpeg module, libmodjpeg and libpng16 dependencies:
+
+    yum -y install https://extras.getpagespeed.com/release-el7-latest.rpm
+    yum install nginx nginx-module-jpeg    
+    
+### Compilation    
+
 For using the modjpeg-nginx filter module, follow these steps:
 
 1. Clone and install [libmodjpeg](https://github.com/ioppermann/libmodjpeg) (libjpeg and cmake are required)
