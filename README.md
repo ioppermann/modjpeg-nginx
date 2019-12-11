@@ -161,6 +161,8 @@ load_module modules/ngx_http_jpeg_filter_module.so;
 
 This module has been tested with the following versions of nginx:
 
+- 1.17.6
+- 1.16.1
 - 1.15.3
 - 1.14.0
 - 1.13.10
