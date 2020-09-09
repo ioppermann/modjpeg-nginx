@@ -399,7 +399,7 @@ __Default:__ `off`
 
 __Context:__ `http, server, location`
 
-Allow to deliver the unchanged image in case the directives [jpeg_filter_max_width](#jpeg_filter_max_width), [jpeg_filter_max_height](#jpeg_filter_max_height), or [jpeg_filter_buffer](#jpeg_filter_buffer) would return a "415 Unsupported Media Type" error.
+Allow to deliver the unchanged image in case the directives [jpeg_filter_max_pixel](#jpeg_filter_max_pixel) or [jpeg_filter_buffer](#jpeg_filter_buffer) would return a "415 Unsupported Media Type" error.
 
 This directive is turned off by default.
 
