@@ -128,9 +128,9 @@ cd ..
 git clone https://github.com/ioppermann/modjpeg-nginx.git
 
 # Download and install nginx
-wget 'http://nginx.org/download/nginx-1.15.1.tar.gz'
-tar -xvzf nginx-1.15.1.tar.gz
-cd nginx-1.15.1
+wget 'http://nginx.org/download/nginx-1.19.2.tar.gz'
+tar -xvzf nginx-1.19.2.tar.gz
+cd nginx-1.19.2
 
 # Configure as static module, or ...
 ./configure --add_module=../modjpeg-nginx
@@ -161,6 +161,8 @@ load_module modules/ngx_http_jpeg_filter_module.so;
 
 This module has been tested with the following versions of nginx:
 
+- 1.19.2
+- 1.18.0
 - 1.17.6
 - 1.16.1
 - 1.15.3
