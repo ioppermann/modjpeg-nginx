@@ -1,24 +1,21 @@
-FROM alpine:latest as nginx
+FROM alpine:latest AS build
 
 ENV \
-	NGINX_VERSION=1.19.2 \
+	NGINX_VERSION=1.26.2 \
 	LIBMODJPEG_VERSION=1.0.2
 
-RUN \
-	export buildDeps=" \
-        binutils \
-        wget \
-        coreutils \
-        gcc \
-        g++ \
-        make \
-        cmake \
-        pcre-dev \
-        zlib-dev \
-        jpeg-dev \
-        libpng-dev \
-        " && \
-	apk add --update ${buildDeps}
+RUN apk add --update \
+	binutils \
+	wget \
+	coreutils \
+	gcc \
+	g++ \
+	make \
+	cmake \
+	pcre-dev \
+	zlib-dev \
+	jpeg-dev \
+	libpng-dev
 
 RUN \
 	mkdir /dist && cd /dist && \
@@ -45,9 +42,9 @@ RUN \
 
 FROM alpine:latest
 
-COPY --from=nginx /usr/local/nginx /usr/local/nginx
-COPY --from=nginx /usr/local/lib /usr/local/lib
-COPY --from=nginx /usr/lib /usr/lib
+COPY --from=build /usr/local/nginx /usr/local/nginx
+COPY --from=build /usr/local/lib /usr/local/lib
+COPY --from=build /usr/lib /usr/lib
 
 ADD contrib/modjpeg.conf.in /usr/local/nginx/conf/modjpeg.conf.in
 ADD contrib/dropon.png /usr/local/nginx/conf/dropon.png
